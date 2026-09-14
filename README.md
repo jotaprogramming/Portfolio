@@ -29,7 +29,7 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 **Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software — análisis, diseño, desarrollo, pruebas y despliegue —, con el objetivo de sostener la productividad de la operación sobre una base capaz de escalar con el negocio. Implementé mecanismos de concurrencia e idempotencia en los procesos de importación y sincronización de datos con el ERP, e incorporé funcionalidades no contempladas en el análisis inicial que resultaron necesarias durante el desarrollo. La arquitectura final fue monolítica, condicionada por restricciones de tiempo y capacidad técnica del equipo frente a una propuesta inicial desacoplada por módulos.
 
-**Resultado:** el sistema pasó de un proceso de despacho que tomaba entre 5 y 20 minutos por unidad de carga, a sostener toda la operación en 3 centros de distribución y 24 tiendas.
+**Resultado:** el sistema pasó de un proceso de despacho secuencial de 3 minutos en promedio por unidad de carga —que se degradaba hasta los 20 minutos cuando el ERP respondía lento—, a sostener toda la operación en 3 centros de distribución y 24 tiendas.
 
 📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de diseño y qué habría hecho diferente.
 
