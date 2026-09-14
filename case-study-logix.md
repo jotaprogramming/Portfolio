@@ -34,17 +34,23 @@ Cualquier solución tenía que convivir con estas condiciones, que no eran negoc
 ### Parchar el sistema existente
 **Descartada.** El acoplamiento era tal que corregir los problemas de confiabilidad implicaba reescribir la lógica de negocio de todas formas. Además, la lógica vivía repartida entre presentación y base de datos, sin una capa donde intervenir de forma centralizada. El esfuerzo de parchar se acercaba al de reconstruir, con la diferencia de que el resultado seguía siendo inmantenible.
 
-### Sistema desacoplado por módulos, independiente del ERP
-**Descartada por restricciones, no por criterio técnico.** Era la solución correcta: un sistema que operara de forma autónoma y un componente sincronizador dedicado a la comunicación con el ERP. Se descartó porque el diseño y desarrollo del sincronizador representaba una complejidad significativa que el tiempo disponible no permitía absorber.
+### Arquitectura desacoplada con sincronización independiente
+**Propuesta técnica preferida, descartada por restricciones del proyecto.**
 
-### Monolito acoplado al ERP
-**Elegida.** Un sistema vertical que mantiene la dependencia del ERP, pero rediseña los procesos y las integraciones que causaban los problemas. Se construyó sobre Django.
+La alternativa que consideraba más adecuada era desacoplar la operación de la disponibilidad inmediata del ERP: el sistema operaría sobre su propio estado, y un componente independiente se encargaría de sincronizar las transacciones de forma asíncrona.
 
-**El razonamiento:** el objetivo prioritario era devolverle productividad a la operación, no construir la arquitectura ideal. Django era la tecnología que el equipo ya dominaba, lo que permitía entregar dentro del plazo disponible. Cualquier alternativa implicaba que un equipo de dos personas aprendiera tecnologías nuevas en el mismo tiempo en que debía entregar, aumentando el costo y el riesgo del proyecto.
+Implementarla correctamente implicaba resolver problemas que exceden ampliamente los de una integración convencional: persistencia de estados, reintentos, conciliación de resultados ambiguos, idempotencia, control de concurrencia, manejo de errores y recuperación ante indisponibilidad del sistema externo.
 
-Una crítica válida al resultado es que el sistema no quedó reactivo, cosa que otro stack habría facilitado. La respuesta es que la necesidad prioritaria era la productividad de la operación, no la interfaz.
+Con un equipo de dos desarrolladores que además mantenían otros sistemas, y bajo una presión operativa inmediata, esa complejidad excedía lo que el proyecto podía absorber dentro del plazo disponible.
 
-**El trade-off aceptado, explícitamente:** se sacrificó independencia del ERP —y con ella, resiliencia ante sus caídas— a cambio de tiempo de entrega. Se documentó como deuda técnica conocida, no como un descuido.
+### Solución implementada: sistema vertical acoplado al ERP
+**La opción viable dadas las restricciones.** Un sistema que mantiene la dependencia del ERP, pero rediseña los procesos y las integraciones que causaban los problemas. Se construyó sobre Django.
+
+**El razonamiento:** el objetivo prioritario era recuperar la productividad de la operación. Django era la tecnología que el equipo ya dominaba, lo que permitía entregar dentro del plazo. Cualquier alternativa implicaba que un equipo de dos personas aprendiera tecnologías nuevas en el mismo tiempo en que debía entregar, aumentando el costo y el riesgo del proyecto.
+
+Una crítica válida al resultado es que el sistema no quedó reactivo, cosa que otro stack habría facilitado. La necesidad prioritaria, sin embargo, era la productividad de la operación, no la interfaz.
+
+**El trade-off aceptado, explícitamente:** se sacrificó independencia del ERP —y con ella, resiliencia ante su indisponibilidad— a cambio de tiempo de entrega. No era la arquitectura que consideraba ideal, sino la que podía implementarse y sostenerse con los recursos y el tiempo disponibles. Quedó documentada como deuda técnica conocida, no como un descuido.
 
 ## Decisiones de diseño
 
@@ -85,13 +91,15 @@ Hoy ocurre algo que ilustra el costo de no haberlo hecho así: cuando el ERP no 
 
 **El contra-argumento, que reconozco:** esta arquitectura implica manejar consistencia eventual y resolver conflictos de sincronización, lo cual introduce su propia complejidad. Para un equipo pequeño, esa complejidad es real y no gratuita.
 
-### Control de flujo en lugar de concurrencia directa
+### Ejecución desacoplada del trabajo de sincronización
 
-**Qué haría:** diseñar el paralelismo considerando explícitamente la capacidad de procesamiento del sistema destino, usando encolamiento y control de flujo en lugar de lanzar operaciones concurrentes contra él.
+**Qué haría:** mover las operaciones de sincronización a workers independientes, con una cola y control explícito de concurrencia, en lugar de ejecutarlas dentro del proceso de aplicación.
 
-**Por qué:** el criterio sería que **la concurrencia se diseña para el sistema más lento de la cadena, no para el propio.** En la práctica, el ERP no estaba preparado para recibir operaciones simultáneas: ante varias solicitudes concurrentes procesa una y rechaza el resto, lo que genera reenvíos manuales. La concurrencia del lado propio no produjo el beneficio esperado porque el cuello de botella estaba del otro lado.
+**Por qué:** la concurrencia está hoy implementada dentro del propio proceso mediante hilos que realizan llamadas síncronas de larga duración contra el ERP. Eso ata la capacidad del sistema de atender trabajo a la duración y disponibilidad de un sistema externo: si el ERP responde lento, el sistema completo se degrada.
 
-También movería el paralelismo fuera del proceso de aplicación. La concurrencia hoy vive dentro del mismo proceso de Python, donde el GIL limita el paralelismo real de operaciones intensivas en CPU — un patrón de workers o procesos separados aprovecharía mejor los recursos disponibles.
+El criterio sería que **el trabajo que depende de un sistema externo no debe ejecutarse en el mismo espacio que atiende a los usuarios.** Una cola con workers permite además controlar explícitamente cuántas operaciones simultáneas se lanzan contra el destino, algo importante en este caso: el ERP no está preparado para recibir operaciones en paralelo —ante varias solicitudes concurrentes procesa una y rechaza el resto—, lo que hoy genera reenvíos manuales.
+
+Como nota secundaria: para trabajo intensivo en CPU, los hilos de Python tampoco habrían dado paralelismo real por el GIL, y habría hecho falta procesos independientes u otro modelo de ejecución. En este caso el cuello de botella es de I/O, así que el problema principal es el acoplamiento de la ejecución, no el GIL.
 
 ### Identidad propia en el modelo de datos
 
@@ -105,6 +113,6 @@ Con identidad propia, una sola estructura unificada habría podido contener regi
 
 ## Reflexión
 
-La decisión de construir un monolito acoplado fue razonable dadas las restricciones: la operación necesitaba una solución en el plazo disponible, y una arquitectura mejor entregada tarde no habría resuelto el problema del negocio.
+La decisión de mantener el acoplamiento con el ERP fue razonable dadas las restricciones: la operación necesitaba una solución en el plazo disponible, y una arquitectura mejor entregada tarde no habría resuelto el problema del negocio.
 
 Pero fue una decisión con fecha de vencimiento, y esa fecha ya pasó. Los límites que hoy tiene el sistema son exactamente los que se aceptaron conscientemente al inicio. La diferencia entre deuda técnica y mal diseño es saber cuál se está contrayendo y por qué.
