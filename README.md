@@ -43,7 +43,7 @@ Resumen de proyectos que he liderado en Supermercados Más por Menos SAS (retail
 
 ---
 
-## Migración de infraestructura: de instancia compartida a arquitectura containerizada
+## Migración de infraestructura: de instancia compartida a arquitectura contenerizada
 
 **El problema:** LogiX inició con todos los puntos de venta compartiendo una misma instancia. Cuando las tiendas empezaron a requerir funcionalidades que esa instancia compartida no podía aislar, se volvió necesario desacoplar responsabilidades entre los 3 centros de distribución.
 
