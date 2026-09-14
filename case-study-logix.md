@@ -14,7 +14,9 @@ El sistema presentaba tres capas de problemas, en orden de gravedad:
 
 **1. Confiabilidad de los datos.** El sistema y el ERP reportaban información distinta sobre los mismos hechos. No existía forma confiable de saber cuál de los dos tenía la información correcta, lo que obligaba a verificaciones manuales y reprocesos.
 
-**2. Bloqueo de la operación.** Los procesos de importación de datos bloqueaban el acceso a la información durante varios minutos. Como estos procesos debían ejecutarse varias veces al día —la información en el ERP cambiaba durante la jornada—, la operación se detenía cada vez. El costo real para el negocio no era la lentitud del sistema en sí, sino tener operarios sin poder trabajar mientras esperaban.
+**2. Bloqueo de la operación.** El problema tenía dos frentes. Por un lado, los procesos de importación de datos bloqueaban el acceso a la información durante varios minutos, y debían ejecutarse varias veces al día —la información en el ERP cambiaba durante la jornada—, deteniendo la operación cada vez. Por otro, el despacho de cada unidad de carga requería sincronizar con el ERP de forma secuencial, un proceso que tomaba entre 5 y 20 minutos por unidad.
+
+El costo real para el negocio no era la lentitud del sistema en sí, sino tener operarios sin poder trabajar mientras esperaban.
 
 **3. Deuda técnica estructural.** La lógica de negocio estaba distribuida entre la capa de presentación y la base de datos, sin una capa de aplicación que la centralizara. Parte del stack estaba descontinuado. Esto hacía que cualquier cambio fuera costoso y riesgoso, y que el sistema fuera difícil de escalar hacia nuevos centros de distribución.
 
@@ -25,7 +27,7 @@ Cualquier solución tenía que convivir con estas condiciones, que no eran negoc
 - **Tiempo.** La operación estaba sufriendo a diario. No había margen para un proyecto largo.
 - **Equipo.** Dos personas, con tiempo parcial (ambos manteníamos otros sistemas en paralelo).
 - **Dependencia del ERP.** El ERP es la fuente de verdad corporativa. Cualquier sistema debe reportarle, y su disponibilidad no está bajo nuestro control.
-- **Aprobación jerárquica.** Las decisiones de stack requerían aprobación de una jefatura conservadora frente a tecnologías nuevas.
+- **Gobernanza técnica.** Las decisiones de stack requerían aprobación fuera del equipo de desarrollo.
 
 ## Alternativas evaluadas
 
@@ -52,7 +54,7 @@ Dentro de las restricciones de arquitectura y stack, estas fueron las decisiones
 El problema de bloqueo se atacó procesando la importación de datos de forma concurrente en lugar de secuencial. Esto redujo las ventanas en que la operación quedaba detenida.
 
 ### Idempotencia en las operaciones críticas
-Las operaciones de sincronización se diseñaron para poder reintentarse sin duplicar transacciones. Esto era indispensable: la comunicación con el ERP falla con frecuencia, y sin idempotencia cada fallo de red introducía riesgo de duplicidad en los datos de inventario.
+Las operaciones de sincronización se diseñaron para poder reintentarse sin duplicar transacciones. Esto era indispensable: la solución debía tolerar indisponibilidad y tiempos de respuesta variables del sistema externo, y sin idempotencia cada interrupción de la comunicación introducía riesgo de duplicidad en los datos de inventario.
 
 ### Control de concurrencia sobre compromisos de mercancía
 Durante el desarrollo se identificó que el sistema anterior no distinguía entre dos conceptos que el ERP trata por separado al comprometer y despachar mercancía. Cuando una misma solicitud se despachaba en cargas parciales, esa falta de distinción hacía que una carga absorbiera las cantidades de otra, dejando registros inconsistentes sin forma de rastrearlos.
