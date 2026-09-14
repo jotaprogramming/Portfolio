@@ -6,6 +6,16 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 - **[Reconstrucción de un sistema de distribución logística](./case-study-logix.md)** — contexto, restricciones, alternativas evaluadas, decisiones de diseño y qué habría hecho diferente.
 
+## Resumen
+
+| Proyecto | Problema | Rol | Escala |
+|---|---|---|---|
+| Distribución logística | Integración con ERP que bloqueaba la operación | Líder de proyecto | 3 centros + 24 tiendas |
+| Facturación electrónica | Migración de envío por lotes a tiempo real | Responsable técnico | Red de puntos de venta |
+| Integración ERP | Datos inconsistentes entre sistemas internos | Diseño y desarrollo | 4 sistemas internos |
+| Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
+| Infraestructura | Instancia compartida sin aislamiento entre centros | Diseño y ejecución | 3 centros |
+
 ## Sistemas en producción
 
 - **Portal de clientes** (registro, fidelización, PQR): https://client.masxmenos.com.co/cliente
@@ -19,7 +29,7 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 **Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software — análisis, diseño, desarrollo, pruebas y despliegue —, con el objetivo de sostener la productividad de la operación sobre una base capaz de escalar con el negocio. Implementé mecanismos de concurrencia e idempotencia en los procesos de importación y sincronización de datos con el ERP, e incorporé funcionalidades no contempladas en el análisis inicial que resultaron necesarias durante el desarrollo. La arquitectura final fue monolítica, condicionada por restricciones de tiempo y capacidad técnica del equipo frente a una propuesta inicial desacoplada por módulos.
 
-**Resultado:** el sistema pasó de resolver una integración compleja e inestable, a sostener toda la operación en 3 centros de distribución y 24 tiendas.
+**Resultado:** el sistema pasó de un proceso de despacho que tomaba entre 5 y 20 minutos por unidad de carga, a sostener toda la operación en 3 centros de distribución y 24 tiendas.
 
 📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de diseño y qué habría hecho diferente.
 
