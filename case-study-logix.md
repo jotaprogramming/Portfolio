@@ -14,7 +14,9 @@ El sistema presentaba tres capas de problemas, en orden de gravedad:
 
 **1. Confiabilidad de los datos.** El sistema y el ERP reportaban información distinta sobre los mismos hechos. No existía forma confiable de saber cuál de los dos tenía la información correcta, lo que obligaba a verificaciones manuales y reprocesos.
 
-**2. Bloqueo de la operación.** El problema tenía dos frentes. Por un lado, los procesos de importación de datos bloqueaban el acceso a la información durante varios minutos, y debían ejecutarse varias veces al día —la información en el ERP cambiaba durante la jornada—, deteniendo la operación cada vez. Por otro, el despacho de cada unidad de carga requería sincronizar con el ERP de forma secuencial, un proceso que tomaba entre 5 y 20 minutos por unidad.
+**2. Bloqueo de la operación.** El problema tenía dos frentes. Por un lado, los procesos de importación de datos bloqueaban el acceso a la información durante varios minutos, y debían ejecutarse varias veces al día —la información en el ERP cambiaba durante la jornada—, deteniendo la operación cada vez.
+
+Por otro, el despacho de cada unidad de carga requería sincronizar con el ERP de forma secuencial: cada operación tardaba unos 10 segundos en condiciones normales, y cada unidad requería dos operaciones (comprometer y trasladar) por cada solicitud que contenía. Una unidad con diez solicitudes implicaba veinte operaciones en serie, alrededor de tres minutos en promedio. Bajo degradación del sistema externo, cuando cada operación superaba el minuto, ese tiempo escalaba hasta los veinte minutos por unidad.
 
 El costo real para el negocio no era la lentitud del sistema en sí, sino tener operarios sin poder trabajar mientras esperaban.
 
