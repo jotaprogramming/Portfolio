@@ -43,6 +43,16 @@ Resumen de proyectos que he liderado en Supermercados Más por Menos SAS (retail
 
 ---
 
+## Migración de infraestructura: de instancia compartida a arquitectura containerizada
+
+**El problema:** LogiX inició con todos los puntos de venta compartiendo una misma instancia. Cuando las tiendas empezaron a requerir funcionalidades que esa instancia compartida no podía aislar, se volvió necesario desacoplar responsabilidades entre los 3 centros de distribución.
+
+**Lo que hice:** migré la infraestructura a Docker, con una instancia independiente por centro de distribución, con manejo de volúmenes persistentes y parametrización independiente de CPU/memoria por contenedor —varias instancias convivían en servidores compartidos junto a otros contenedores, lo que exigió una gestión cuidadosa de recursos.
+
+**Resultado:** arquitectura desacoplada por centro de distribución, con migración progresiva de instancias a servidores dedicados sin necesidad de rediseñar el sistema.
+
+---
+
 ## Proyectos personales / académicos
 
 - [bolsaempleo2023](https://github.com/jotaprogramming/bolsaempleo2023) — Proyecto de grado: bolsa de empleo para egresados, desarrollado en Django.
