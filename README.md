@@ -4,17 +4,16 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ## Casos de estudio
 
-- **[Reconstrucción de un sistema de distribución logística](./case-study-logix.md)** — contexto, restricciones, alternativas evaluadas, decisiones de diseño y qué habría hecho diferente.
+- **[LogiX: evolución de una plataforma crítica de distribución logística](./case-study-logix.md)** — reconstrucción bajo restricciones, ownership prolongado en producción, evolución hacia despliegues distribuidos, y retrospectiva sobre las consecuencias de las decisiones iniciales.
 
 ## Resumen
 
 | Proyecto | Problema | Rol | Escala |
 |---|---|---|---|
-| Distribución logística | Integración con ERP que bloqueaba la operación | Líder de proyecto | 3 centros + 24 tiendas |
-| Facturación electrónica | Migración de envío por lotes a tiempo real | Responsable técnico | Red de puntos de venta |
+| LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
+| Facturación electrónica | Migración de envío por lotes a tiempo real bajo exigencia normativa | Responsable técnico | Red de puntos de venta |
 | Integración ERP | Datos inconsistentes entre sistemas internos | Diseño y desarrollo | 4 sistemas internos |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
-| Infraestructura | Instancia compartida sin aislamiento entre centros | Diseño y ejecución | 3 centros |
 
 ## Sistemas en producción
 
@@ -23,15 +22,17 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ---
 
-## LogiX — Sistema de Gestión Logística y Distribución
+## LogiX — Plataforma de Gestión Logística y Distribución
 
-**El problema:** el sistema de distribución dejó de responder a una operación que exige alta productividad y velocidad logística. Su integración inicial con el ERP introdujo dificultades de sincronización, inconsistencias de datos y dependencias que lo hacían fallar en etapas críticas de la operación, comprometiendo la confiabilidad de la información. A esto se sumaba que el sistema había sido construido para resolver una necesidad puntual y no una proyección del negocio, lo que dificultaba su escalabilidad y su mantenimiento a largo plazo.
+**El problema:** el sistema de distribución dejó de responder a una operación que exige alta productividad y velocidad logística. Su integración inicial con el ERP introdujo dificultades de sincronización, inconsistencias de datos y dependencias que lo hacían fallar en etapas críticas, comprometiendo la confiabilidad de la información. A esto se sumaba que el sistema había sido construido para resolver una necesidad puntual y no una proyección del negocio, lo que dificultaba su escalabilidad y su mantenimiento a largo plazo.
 
-**Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software — análisis, diseño, desarrollo, pruebas y despliegue —, con el objetivo de sostener la productividad de la operación sobre una base capaz de escalar con el negocio. Implementé mecanismos de concurrencia e idempotencia en los procesos de importación y sincronización de datos con el ERP, e incorporé funcionalidades no contempladas en el análisis inicial que resultaron necesarias durante el desarrollo. La arquitectura final fue monolítica, condicionada por restricciones de tiempo y capacidad técnica del equipo frente a una propuesta inicial desacoplada por módulos.
+**Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software —análisis, diseño, desarrollo, pruebas y despliegue— y mantengo su ownership técnico desde entonces. Implementé mecanismos de concurrencia e idempotencia en los procesos de sincronización con el ERP. La arquitectura inicial fue monolítica, condicionada por restricciones de tiempo y capacidad del equipo frente a una propuesta desacoplada que habría sido preferible técnicamente.
 
-**Resultado:** el sistema pasó de un proceso de despacho secuencial de 3 minutos en promedio por unidad de carga —que se degradaba hasta los 20 minutos cuando el ERP respondía lento—, a sostener toda la operación en 3 centros de distribución y 24 tiendas.
+**La evolución:** al crecer más allá de su alcance original, LogiX pasó de una instalación única a un modelo de instancias independientes que se comunican mediante APIs REST, y de instalaciones directas sobre el sistema operativo a despliegues contenerizados. Refactoricé el producto para soportar operaciones con reglas distintas sobre una misma base de código, y amplié su papel en el dominio: de consumir información del ERP a también originar determinadas operaciones y absorber procesos que antes obligaban a los usuarios a trabajar directamente sobre él.
 
-📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de diseño y qué habría hecho diferente.
+**Resultado:** LogiX soporta hoy procesos de distribución en 3 centros de distribución y 24 tiendas, en producción y bajo evolución continua.
+
+📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de ingeniería, límites actuales y qué habría hecho diferente.
 
 ---
 
@@ -65,21 +66,11 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ---
 
-## Migración de infraestructura: de instancia compartida a arquitectura contenerizada
-
-**El problema:** el sistema LogiX operaba sobre una arquitectura de instancia compartida entre todos los puntos de venta, lo que impedía aislar funcionalidades específicas por centro de distribución y generaba una dependencia crítica entre centros con necesidades operativas distintas, limitando la escalabilidad del sistema.
-
-**Lo que hice:** migré la infraestructura de una instancia compartida a una arquitectura contenerizada, desplegando una instancia independiente por centro de distribución. Gestioné los recursos compartidos entre servidores para garantizar la convivencia con otros servicios sin degradar su desempeño, diseñando la migración de forma que cada instancia pudiera trasladarse posteriormente a un servidor dedicado sin rediseñar la arquitectura.
-
-**Resultado:** la arquitectura pasó de una instancia compartida con acoplamiento entre centros de distribución, a instancias desacopladas con capacidad de escalar y migrar de forma independiente.
-
----
-
 ## Tecnologías
 
 Estas son las tecnologías en las que me he apoyado para resolver los problemas descritos. No detallo cuál corresponde a cada sistema, por razones de confidencialidad.
 
-Python · Django · Django REST Framework · JavaScript · TypeScript · Vue.js · Nuxt · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · APIs REST / Web Services (JSON, HTTP/S) · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
+Python · Django · Django REST Framework · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · APIs REST / Web Services (JSON, HTTP/S) · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
 
 ---
 
