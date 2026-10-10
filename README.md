@@ -1,6 +1,14 @@
 # Portfolio — Jerson Guerrero
 
-A lo largo de mi carrera he liderado el diseño e integración de sistemas críticos de negocio: distribución logística, facturación electrónica, integración de ERP corporativo, plataformas de cara al cliente y herramientas para agentes de IA. El código de estos proyectos empresariales no es público; este repositorio documenta problemas, decisiones de ingeniería y resultados sin publicar código propietario, configuraciones internas ni información sensible.
+**Ingeniero de software | Python/Django · Integración de sistemas empresariales · TypeScript/Node.js**
+
+Trabajo en el desarrollo y evolución de sistemas empresariales en producción, principalmente en entornos de retail. Desde 2022 he participado en proyectos de logística, compras, facturación y plataformas de cara al cliente, asumiendo responsabilidades de diseño, implementación, diagnóstico de incidentes y mantenimiento a largo plazo.
+
+Mi especialidad es **conectar sistemas que tienen reglas, datos y restricciones diferentes**, sin perder de vista la operación que depende de ellos. He liderado técnicamente la evolución de LogiX, trabajado en integraciones con el ERP Siesa y desarrollado un servidor MCP interno en TypeScript/Node.js para que agentes autorizados consulten y correlacionen datos de varias aplicaciones.
+
+**Áreas de trabajo:** arquitectura y evolución de aplicaciones Django; integraciones de ERP, APIs y sistemas heredados; diseño de datos y lógica SQL; backend TypeScript/Node.js y herramientas MCP; despliegue, diagnóstico de producción y observabilidad con Docker, Linux y Grafana.
+
+Este repositorio documenta **decisiones de ingeniería, límites, resultados y aprendizajes**, no solamente tecnologías. El código de los proyectos empresariales pertenece a las organizaciones correspondientes y no se publica; se omiten configuraciones internas y datos sensibles.
 
 ## Casos de estudio
 
@@ -32,6 +40,8 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 **Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software —análisis, diseño, desarrollo, pruebas y despliegue— y mantengo su ownership técnico desde entonces. Implementé mecanismos de concurrencia e idempotencia en los procesos de sincronización con el ERP. La arquitectura inicial fue monolítica, condicionada por restricciones de tiempo y capacidad del equipo frente a una propuesta desacoplada que habría sido preferible técnicamente.
 
 **La evolución:** al crecer más allá de su alcance original, LogiX pasó de una instalación única a un modelo de instancias independientes que se comunican mediante APIs REST. Adopté contenedores progresivamente para las nuevas instancias, logrando aislamiento y facilitando una eventual migración a infraestructura dedicada, todavía pendiente. Refactoricé el producto para soportar operaciones con reglas distintas sobre una misma base de código y amplié su papel en el dominio: de consumir información del ERP a también originar determinadas operaciones y absorber procesos que antes obligaban a los usuarios a trabajar directamente sobre él.
+
+**Observabilidad:** implementé un tablero en Grafana para dar seguimiento a las integraciones LogiX–Siesa mediante información registrada por la aplicación: volumen de solicitudes, respuestas ausentes, errores y latencias. Se utiliza para analizar el comportamiento de una dependencia crítica con evidencia operativa.
 
 **Resultado:** LogiX soporta hoy procesos de distribución en 3 centros de distribución y 24 tiendas, en producción y bajo evolución continua. En la primera entrega, la importación de datos pasó de unos cinco minutos a unos tres segundos y el despacho promedio por unidad de carga, de unos tres minutos a unos diez segundos. Son resultados históricos; posteriormente fue necesario reducir la concurrencia hacia el ERP.
 
@@ -73,7 +83,6 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 📄 **[Leer el caso de estudio completo](./case-study-siesa.md)** — responsabilidades, configuración de integración, decisiones, evolución y límites del sistema.
 
-
 ---
 
 ## Modernización del registro de clientes
@@ -86,11 +95,17 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ---
 
-## Tecnologías
+## Tecnologías y experiencia práctica
 
-Estas son tecnologías que he utilizado en los proyectos descritos. Solo comparto detalles técnicos cuya publicación no compromete información interna.
+Agrupo las tecnologías por el tipo de trabajo realizado; no todas representan el mismo nivel de profundidad.
 
-Python · Django · Django REST Framework · Node.js · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · MCP (Model Context Protocol) · Streamable HTTP · Zod · APIs REST / Web Services (JSON, HTTP/S) · Siesa ERP · Connekta · Siesa Integrador · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
+- **Backend y aplicaciones:** Python · Django · Django REST Framework · TypeScript/Node.js (servidor MCP interno) · Nuxt (SSR).
+- **Bases de datos y lógica de negocio:** PostgreSQL · SQL Server · SQL · PL/pgSQL · PL/Python · Prisma ORM.
+- **Frontend:** JavaScript · TypeScript · Vue.js · Nuxt · React · Bootstrap · Tailwind CSS.
+- **Integración y automatización:** APIs REST · JSON/HTTP · servicios web · MCP (Model Context Protocol) · Streamable HTTP · Zod · Siesa ERP · Connekta · Siesa Integrador · n8n.
+- **Infraestructura y observabilidad:** Docker · Linux (Ubuntu Server) · Nginx · Apache · Gunicorn · Grafana · Uptime Kuma (configuración de monitores) · Git.
+
+Mi experiencia con Node.js en producción se concentra en Nuxt y en el backend del MCP; mi trabajo con Connekta y Siesa Integrador es de configuración e integración, no de desarrollo de sus servicios SOAP.
 
 ---
 

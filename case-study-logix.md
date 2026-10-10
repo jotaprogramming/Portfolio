@@ -2,6 +2,19 @@
 
 > Este documento describe decisiones de ingeniería y su razonamiento. No detalla topología de producción, configuración de infraestructura, reglas completas de negocio ni estructuras de datos, por confidencialidad y seguridad.
 
+## En breve
+
+| Aspecto | Contexto |
+|---|---|
+| **Rol** | Liderazgo técnico del desarrollo inicial y responsabilidad continuada sobre el producto en producción |
+| **Problema** | Bloqueos operativos e inconsistencias en la distribución, con dependencia obligatoria del ERP |
+| **Decisión inicial** | Monolito Django sobre tecnología conocida para entregar con un equipo pequeño |
+| **Evolución** | Instancias independientes comunicadas por APIs REST, despliegues contenerizados para nuevas instalaciones y adaptación de reglas por operación |
+| **Escala actual** | Procesos de distribución para 3 centros y 24 tiendas |
+| **Límite principal** | Dependencia de la disponibilidad y del comportamiento del ERP; la sincronización independiente sigue siendo una alternativa no implementada |
+
+Las mejoras de tiempo que se mencionan más adelante son **mediciones de la primera entrega**, no métricas actuales garantizadas. El sistema sigue en evolución y conserva deuda técnica conocida.
+
 ---
 
 ## Contexto
@@ -68,7 +81,8 @@ Elegí Django porque era la tecnología que el equipo ya dominaba. Cualquier alt
 
 Una crítica válida al resultado es que el sistema no quedó reactivo, algo que otro stack habría facilitado. La prioridad, sin embargo, era la productividad de la operación, no la interfaz.
 
-**Lo que se ganó:** una solución en producción dentro del plazo que la operación necesitaba.\
+**Lo que se ganó:** una solución en producción dentro del plazo que la operación necesitaba.
+
 **Lo que se sacrificó:** independencia del ERP y, con ella, resiliencia ante su indisponibilidad.
 
 ---
@@ -111,21 +125,21 @@ Es la parte del trabajo que más me ha enseñado: las decisiones de la primera v
 
 ---
 
-## Cuando una dependencia externa cambia las reglas
+## Cuando cambia el comportamiento de una dependencia externa
 
-El caso más instructivo de esa etapa no fue un error propio.
+Una de las situaciones más instructivas surgió de un comportamiento externo que LogiX no controlaba.
 
 LogiX se diseñó y se construyó sobre un supuesto verificado: el ERP aceptaba operaciones simultáneas. La concurrencia en la sincronización era una de las razones por las que el sistema había recuperado la productividad de la operación.
 
-Un día, sin aviso ni despliegue de nuestro lado, la integración empezó a fallar con respuestas con errores de *deadlock* y de documento ya existente —fallos característicos de un destino que ya no tolera operaciones concurrentes. No hubo cambios en LogiX ese día ni en los anteriores.
+Un día, sin aviso ni despliegue de nuestro lado, la integración empezó a devolver errores de *deadlock* y de documento ya existente, compatibles con una pérdida de tolerancia a las operaciones concurrentes. No hubo cambios en LogiX ese día ni en los anteriores. Sin acceso al código y la configuración internos del ERP, no fue posible verificar la causa exacta del cambio de comportamiento.
 
 Escalamos el caso con el equipo del ERP para recuperar el comportamiento anterior. Su posición fue que no habían modificado nada y que el proceso seguía siendo el mismo. Sin acceso al sistema y sin acuerdo sobre qué había cambiado, no había forma de revertirlo.
 
 **La única salida era adaptar LogiX.** Tuvimos que reducir la concurrencia contra el ERP y ajustar la operación a una restricción que no existía cuando el sistema fue diseñado, sacrificando parte del rendimiento que se había ganado.
 
-Lo que aprendí de esto no fue sobre concurrencia. Fue sobre acoplamiento: **cuando un sistema depende del comportamiento de otro que no controlas, no dependes de su disponibilidad solamente, sino también de que sus reglas no cambien.** Un supuesto verificado en el momento del diseño puede dejar de ser cierto sin que nadie lo anuncie, y sin que exista un interlocutor dispuesto a reconocerlo.
+Lo que aprendí de esto no fue solo sobre concurrencia. Fue sobre acoplamiento: **cuando un sistema depende del comportamiento de otro que no controlas, dependes tanto de su disponibilidad como de la estabilidad de su comportamiento.** Un supuesto verificado durante el diseño puede dejar de cumplirse, independientemente de que se conozca la causa.
 
-Este episodio es la evidencia más directa a favor de la arquitectura que había propuesto al inicio. Una capa de sincronización independiente, con control de flujo explícito hacia el destino, habría permitido absorber ese cambio ajustando una configuración en lugar de modificar el comportamiento del sistema y de la operación.
+El episodio refuerza el valor de la alternativa desacoplada que había propuesto al inicio. Una capa de sincronización independiente, **si incorpora límites de concurrencia configurables**, habría permitido aislar mejor la adaptación al destino y evitar cambios en los flujos de atención a usuarios. No habría eliminado, por sí sola, los errores ni la necesidad de reconciliar transacciones.
 
 ---
 
@@ -227,16 +241,26 @@ Durante la evolución del producto integré además una plataforma B2B externa (
 
 ---
 
+## Observabilidad de la integración con el ERP
+
+En septiembre de 2026 implementé un tablero en **Grafana** para observar la salud de las integraciones entre LogiX y Siesa. El tablero utiliza información de los registros de integración consultada con permisos restringidos de lectura, sin ejecutar transacciones de negocio.
+
+Sus paneles permiten analizar volumen de solicitudes, solicitudes sin respuesta, proporciones por tipo de documento y latencias. También se utilizó como evidencia técnica en conversaciones con el proveedor del ERP sobre el comportamiento observado desde LogiX.
+
+No es un mecanismo que resuelva por sí solo las fallas del sistema externo: **su aporte es hacer visibles y contrastables los síntomas**, facilitar el diagnóstico y mejorar la comunicación entre los equipos responsables.
+
+---
+
 ## Resultados
 
 - Sustitución del sistema heredado y resolución de los principales problemas de bloqueo operativo y confiabilidad identificados, aunque la nueva plataforma conserva limitaciones y deuda técnica propias.
 - En la primera entrega, reducción de la importación de datos de unos cinco minutos a unos tres segundos y del despacho promedio de una unidad de carga de unos tres minutos a unos diez segundos. Son cifras históricas: después hubo que reducir la concurrencia hacia el ERP, sacrificando parte del rendimiento obtenido.
-- Eliminación de las inconsistencias entre cargas que obligaban a verificación manual.
+- Corrección de las inconsistencias entre cargas parciales que se habían identificado en el sistema anterior, evitando ese patrón específico de errores.
 - Expansión desde una operación principal hasta soportar procesos de distribución en **3 centros de distribución y 24 tiendas**.
 - Evolución de una instalación única a un modelo de instancias independientes que se comunican mediante APIs REST.
 - Adopción progresiva de contenedores para nuevas instancias, con beneficios de aislamiento y administración ya observados y una eventual migración a infraestructura dedicada todavía pendiente.
 - Soporte de contextos operativos distintos sobre una misma base de código, mediante refactorización y configuración, sin duplicar el producto.
-- Incorporación de integraciones con sistemas externos además del ERP.
+- Incorporación de una integración logística externa, además del ERP, y de un tablero de observabilidad de las operaciones de integración mediante Grafana.
 - Reducción de tareas manuales y de la necesidad de que usuarios operativos interactúen directamente con el ERP.
 - Capacidad de originar determinadas operaciones del dominio, no solo consumirlas.
 - Continuidad de la operación ante un cambio no anunciado en el comportamiento del sistema externo, mediante adaptación del propio sistema.
@@ -304,6 +328,6 @@ Esta es la decisión cuyo costo he podido medir mejor. Usar el identificador del
 
 La arquitectura inicial resolvió correctamente el problema que existía bajo las restricciones de ese momento. LogiX terminó creciendo mucho más allá del alcance para el que fue concebido.
 
-Varias de sus limitaciones actuales son consecuencias conocidas de decisiones que fueron razonables en su contexto. Otras decisiones, tomadas pensando en flexibilidad futura, terminaron produciendo beneficios que en su momento eran solo una apuesta. Y algunas restricciones no vinieron de decisiones propias en absoluto, sino de un sistema externo que cambió sus reglas sin aviso.
+Varias de sus limitaciones actuales son consecuencias conocidas de decisiones que fueron razonables en su contexto. Otras decisiones, tomadas pensando en flexibilidad futura, terminaron produciendo beneficios que en su momento eran solo una apuesta. Y algunas restricciones no vinieron de decisiones propias en absoluto, sino de una dependencia externa cuyo comportamiento observado cambió sin que pudiera verificarse la causa exacta.
 
 Haber mantenido el ownership durante toda esa evolución me permitió ver las dos caras de esas decisiones: el beneficio inmediato que hicieron posible y el costo —o el beneficio adicional— que apareció cuando el sistema tuvo que crecer.
