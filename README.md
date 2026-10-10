@@ -1,6 +1,6 @@
 # Portfolio — Jerson Guerrero
 
-**Ingeniero de software | Python/Django · Integración de sistemas empresariales · TypeScript/Node.js**
+**Ingeniero de software especializado en sistemas empresariales**
 
 ![Python y Django](https://img.shields.io/badge/Python-Django-475569?style=flat-square)
 ![TypeScript y Node.js](https://img.shields.io/badge/TypeScript-Node.js-475569?style=flat-square)
@@ -8,7 +8,7 @@
 ![Docker](https://img.shields.io/badge/Infraestructura-Docker-475569?style=flat-square)
 ![MCP](https://img.shields.io/badge/Agent%20Tooling-MCP-475569?style=flat-square)
 
-Desarrollo y evoluciono sistemas empresariales en producción, principalmente en retail. Mi trabajo combina **Python/Django, integración de sistemas y backend TypeScript/Node.js**, con responsabilidad sobre arquitectura, diagnóstico de incidentes, despliegue y mantenimiento.
+Desarrollo y evoluciono aplicaciones empresariales en producción, principalmente en retail. Mi trabajo abarca arquitectura backend, integración de sistemas, diagnóstico de incidentes, despliegue y mantenimiento a largo plazo.
 
 He liderado técnicamente LogiX, participado en integraciones con Siesa y desarrollado un servidor MCP para agentes que consultan información empresarial mediante herramientas autorizadas. Me centro en **hacer interoperables sistemas con reglas distintas**, preservando la consistencia de los datos y la operación.
 
