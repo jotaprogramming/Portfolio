@@ -12,8 +12,6 @@ El ERP corporativo (Siesa) actúa como fuente de verdad para inventario, compras
 
 Lideré la reconstrucción del sistema de distribución y mantengo su ownership técnico desde entonces. Eso significa que las decisiones que describo aquí no son hipótesis: he visto sus consecuencias en producción a lo largo de más de un año de evolución.
 
-El nombre del proyecto sería LogiX.
-
 ---
 
 ## El sistema heredado
@@ -101,7 +99,7 @@ Diseñé el modelo de datos y las integraciones, condicionado por la necesidad d
 
 Desplegué sobre Ubuntu Server con Gunicorn y Apache2, como instalación directa sobre el sistema operativo. Para el alcance de ese momento —una operación principal, pocas instalaciones, infraestructura conocida— era la estrategia adecuada.
 
-**Resultados de la primera entrega:** la importación de datos pasó de minutos a segundos; el despacho de una unidad de carga pasó de unos tres minutos a segundos, y desaparecieron los errores de inconsistencia entre cargas.
+**Resultados de la primera entrega (agosto de 2025):** la importación de datos pasó de unos cinco minutos a unos tres segundos; el despacho promedio de una unidad de carga, de unos tres minutos a unos diez segundos; y desaparecieron las inconsistencias entre cargas descritas anteriormente. Estas mediciones corresponden a la primera entrega, no necesariamente al rendimiento actual tras cambios posteriores en el ERP.
 
 ---
 
@@ -175,11 +173,11 @@ No reescribí la infraestructura existente. Durante un periodo coexistieron estr
 
 La estrategia nueva se aplicó donde resolvía un problema real, no por uniformidad tecnológica.
 
-### La decisión se validó después
+### Beneficios actuales y portabilidad futura
 
-Más adelante fue necesario mover la operación de uno de los centros a infraestructura dedicada. Como esa instancia ya estaba contenerizada, la migración fue considerablemente más simple que si la instalación hubiera estado configurada directamente sobre el sistema operativo.
+La contenerización permitió que varias instancias independientes compartieran infraestructura con mayor aislamiento y despliegues reproducibles. Esos beneficios ya se aprovechan en producción.
 
-Fue una decisión tomada pensando en flexibilidad futura que terminó produciendo un beneficio concreto cuando el crecimiento lo exigió.
+También quedó preparada la posibilidad de trasladar una de las operaciones a infraestructura dedicada con menor dependencia de la configuración del servidor original. Esa migración todavía no se ha ejecutado; la portabilidad es una capacidad buscada, no un beneficio ya demostrado mediante una migración real.
 
 ---
 
@@ -231,12 +229,12 @@ Durante la evolución del producto integré además una plataforma B2B externa (
 
 ## Resultados
 
-- Sustitución completa del sistema heredado, eliminando su deuda estructural y sus problemas de confiabilidad de datos.
-- Reducción de los tiempos que detenían la operación: la importación de datos pasó de minutos a segundos y el despacho de una unidad de carga, de unos tres minutos a segundos.
+- Sustitución del sistema heredado y resolución de los principales problemas de bloqueo operativo y confiabilidad identificados, aunque la nueva plataforma conserva limitaciones y deuda técnica propias.
+- En la primera entrega, reducción de la importación de datos de unos cinco minutos a unos tres segundos y del despacho promedio de una unidad de carga de unos tres minutos a unos diez segundos. Son cifras históricas: después hubo que reducir la concurrencia hacia el ERP, sacrificando parte del rendimiento obtenido.
 - Eliminación de las inconsistencias entre cargas que obligaban a verificación manual.
 - Expansión desde una operación principal hasta soportar procesos de distribución en **3 centros de distribución y 24 tiendas**.
 - Evolución de una instalación única a un modelo de instancias independientes que se comunican mediante APIs REST.
-- Evolución de la estrategia de despliegue hacia contenedores, con portabilidad demostrada al migrar una operación a infraestructura dedicada.
+- Adopción progresiva de contenedores para nuevas instancias, con beneficios de aislamiento y administración ya observados y una eventual migración a infraestructura dedicada todavía pendiente.
 - Soporte de contextos operativos distintos sobre una misma base de código, mediante refactorización y configuración, sin duplicar el producto.
 - Incorporación de integraciones con sistemas externos además del ERP.
 - Reducción de tareas manuales y de la necesidad de que usuarios operativos interactúen directamente con el ERP.
@@ -296,7 +294,7 @@ Esta es la decisión cuyo costo he podido medir mejor. Usar el identificador del
 
 ### Lo que no cambiaría
 
-**La contenerización.** Añadió complejidad operacional en su momento, pero el aislamiento y la portabilidad que buscaba se materializaron cuando hubo que migrar una operación a infraestructura dedicada.
+**La contenerización.** Añadió complejidad operacional, pero ya facilita el aislamiento y la administración de varias instancias. La portabilidad fue otro objetivo: simplificar una eventual migración a infraestructura dedicada, que todavía no se ha ejecutado.
 
 **El monolito.** Con dos personas, tiempo parcial y presión operativa, un monolito sobre tecnología conocida fue lo que permitió entregar y sostener el sistema. El crecimiento posterior no se resolvió reescribiéndolo, sino cambiando cómo se despliega.
 
