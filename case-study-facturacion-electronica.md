@@ -131,13 +131,9 @@ Una exigencia adicional fue incluir en la tirilla de venta el código QR y el CU
 
 La integración con Conexus entregaba el **CUFE ya generado** y el **QR codificado en base64**. Mi responsabilidad fue obtener esos datos, preparar la imagen del QR y resolver su publicación para que pudiera utilizarla el sistema que realizaba la impresión.
 
-La dificultad fue que parte del circuito de caja estaba diseñada para imprimir texto, no imágenes de forma directa. La solución requirió compatibilizar el resultado digital de Conexus con un componente heredado desarrollado en **Delphi**.
-
-La publicación de la imagen permitía que el sistema existente la incorporara a la tirilla sin necesidad de reemplazar íntegramente el software de impresión.
+Como parte del circuito de caja estaba diseñado para imprimir texto y no imágenes de forma directa, adapté la publicación del QR para que el sistema de impresión heredado pudiera incorporarlo a la tirilla sin necesidad de reemplazar ese componente.
 
 Esto demuestra una clase de problema frecuente en integración empresarial: **el contrato de salida no termina en la respuesta de la API**. La información debe llegar en un formato que pueda utilizar el último sistema del proceso.
-
-Las notas del proyecto sitúan una entrega relevante de QR/CUFE en junio de 2024. No se publican rutas de archivos, configuración de transferencia, formatos internos ni identificadores reales.
 
 ---
 
