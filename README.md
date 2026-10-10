@@ -27,13 +27,6 @@ Este repositorio documenta **decisiones de ingeniería, límites, resultados y a
 | Integración ERP Siesa | Sincronización y consistencia de datos entre ERP y sistemas operativos | Desarrollo, configuración y optimización según el frente | Compras, distribución y facturación |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
 
-## Sistemas en producción
-
-- **Portal de clientes** (registro, fidelización, PQR): https://client.masxmenos.com.co/cliente
-- **Portal de compras a proveedores** (integración con ERP Siesa): https://comprasproveedor.masxmenos.com.co/
-
----
-
 ## LogiX — Plataforma de Gestión Logística y Distribución
 
 **El problema:** el sistema de distribución dejó de responder a una operación que exige alta productividad y velocidad logística. Su integración inicial con el ERP introdujo dificultades de sincronización, inconsistencias de datos y dependencias que lo hacían fallar en etapas críticas, comprometiendo la confiabilidad de la información. A esto se sumaba que el sistema había sido construido para resolver una necesidad puntual y no una proyección del negocio, lo que dificultaba su escalabilidad y su mantenimiento a largo plazo.
