@@ -114,13 +114,12 @@ No implementé una integración directa con la DIAN mediante SOAP/XML ni desarro
 ### Flujo conceptual del documento
 
 ```mermaid
-flowchart TD
-    A["POS<br/>Datos de la venta"] --> B["Reconstrucción fiscal<br/>PL/pgSQL"]
-    B --> C["Integración con Conexus<br/>Documento JSON"]
-    C --> D["Conexus<br/>Proveedor tecnológico"]
-    D --> E["DIAN<br/>Comunicación a cargo de Conexus"]
-    D --> F["Respuesta<br/>CUFE y QR"]
-    F --> G["Impresión<br/>Adaptación heredada"]
+flowchart TB
+    A["POS<br/>Datos de venta"] --> B["Cálculo fiscal<br/>PL/pgSQL"]
+    B --> C["Documento JSON<br/>Envío a Conexus"]
+    C --> D["Conexus<br/>Comunicación con DIAN"]
+    D --> E["Respuesta<br/>CUFE y QR"]
+    E --> F["Impresión<br/>Sistema heredado"]
 ```
 
 *Flujo lógico; no corresponde a una topología real de servidores o redes.*

@@ -186,9 +186,9 @@ La contenerización ya facilita el aislamiento y despliegues reproducibles en in
 ### Evolución de la solución
 
 ```mermaid
-flowchart LR
-    A["Primera entrega<br/>Monolito Django"] --> B["Expansión<br/>Instancias del mismo monolito"]
-    B --> C["Colaboración entre instancias<br/>APIs REST"]
+flowchart TB
+    A["Monolito Django<br/>Primera entrega"] --> B["Instancias independientes<br/>Mismo monolito"]
+    B --> C["APIs REST<br/>Entre instancias"]
     C --> D["Nuevas instalaciones<br/>Docker y Nginx"]
 ```
 
