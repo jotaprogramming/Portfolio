@@ -15,6 +15,7 @@ Este repositorio documenta **decisiones de ingeniería, límites, resultados y a
 - **[LogiX: evolución de una plataforma crítica de distribución logística](./case-study-logix.md)** — reconstrucción bajo restricciones, ownership prolongado en producción, evolución hacia despliegues distribuidos, y retrospectiva sobre las consecuencias de las decisiones iniciales.
 - **[MCP: herramientas seguras para agentes sobre sistemas empresariales](./case-study-mcp.md)** — backend TypeScript/Node.js, integración de cuatro sistemas mediante PostgreSQL y HTTP, control de acceso, diagnóstico operativo y trazabilidad de activos fijos.
 - **[Siesa: integración de ERP corporativo en compras, distribución y facturación](./case-study-siesa.md)** — desarrollo de integración para compras, configuración de servicios mediante Connekta y Siesa Integrador, y diagnóstico de inconsistencias POS–ERP.
+- **[Facturación electrónica: reconstrucción de datos fiscales en tiempo real](./case-study-facturacion-electronica.md)** — adaptación de una integración heredada con Conexus, tratamiento de inconsistencias fiscales y publicación de QR/CUFE en la impresión de caja.
 
 ## Resumen
 
@@ -22,7 +23,7 @@ Este repositorio documenta **decisiones de ingeniería, límites, resultados y a
 |---|---|---|---|
 | LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
 | MCP interno (herramientas para agentes) | Consultas de soporte y trazabilidad de activos fragmentadas entre aplicaciones | Diseño, desarrollo y despliegue | 4 sistemas integrados; uso interno por el equipo |
-| Facturación electrónica | Migración de envío por lotes a tiempo real bajo exigencia normativa | Responsable técnico | Red de puntos de venta |
+| Facturación electrónica (Conexus) | Datos fiscales incompletos e integración por lotes ante requisitos de tiempo real | Responsable técnico y mantenimiento evolutivo | Red de puntos de venta |
 | Integración ERP Siesa | Sincronización y consistencia de datos entre ERP y sistemas operativos | Desarrollo, configuración y optimización según el frente | Compras, distribución y facturación |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
 
@@ -61,13 +62,17 @@ Este repositorio documenta **decisiones de ingeniería, límites, resultados y a
 
 ---
 
-## Facturación electrónica en tiempo real
+## Facturación electrónica en tiempo real (Conexus)
 
-**El problema:** heredé una integración de facturación electrónica incompleta, basada en envíos por lotes que debían adaptarse a la validación en tiempo real exigida por la normativa. El sistema de punto de venta almacenaba datos fiscales incompletos y trataba de manera diferente ventas, devoluciones y descuentos; esas inconsistencias provocaban errores de cálculo. Además, faltaba incorporar a la tirilla de venta el código QR y el CUFE proporcionados por el proveedor tecnológico, sin afectar el tiempo de atención en caja.
+**El problema:** recibí una integración incompleta que enviaba facturas por lotes y necesitaba adaptarse a las exigencias de procesamiento en tiempo real. El sistema de punto de venta no almacenaba todos los valores fiscales que requería la integración: sus registros de ventas, devoluciones, descuentos e impuestos incluían convenciones de signos, redondeos y cálculos inconsistentes. Además, el circuito de impresión heredado debía incorporar QR y CUFE sin interrumpir la atención en caja.
 
-**Lo que hice:** asumí la responsabilidad técnica de la integración. Investigué la trazabilidad de los datos del punto de venta y desarrollé mecanismos de recálculo mediante PL/pgSQL para reconstruir valores fiscales a partir de registros incompletos o inconsistentes. Adapté el flujo de envío para procesar los comprobantes en tiempo real, dentro de un límite operativo de cinco segundos por factura. Integré el webservice del proveedor tecnológico de facturación electrónica, que realiza la comunicación directa con la DIAN y devuelve el CUFE ya generado y el QR codificado en base64. Mi trabajo incluyó obtener esos datos, generar y publicar la imagen del QR para su incorporación a la impresión mediante el sistema legado; no consistió en generar el CUFE ni en integrar directamente con la DIAN.
+**Lo que hice:** asumí la responsabilidad técnica de la integración y analicé más de veinte casos reales de facturación para identificar patrones de inconsistencia. Implementé funciones de recálculo y conciliación fiscal en **PL/pgSQL**, preservando los registros originales del POS, y adapté el envío al flujo en tiempo real bajo un objetivo operativo de **cinco segundos por factura**. Integré el webservice del proveedor tecnológico **Conexus**, que se encarga de la comunicación directa con la DIAN y devuelve el CUFE y el QR en base64. Desarrollé el procesamiento y la publicación de la imagen QR para que un sistema heredado pudiera incorporarla a la tirilla. Para ciertas devoluciones totales utilicé el XML de la factura ya emitida como fuente para generar la nota correspondiente, sin construir mensajes XML dirigidos a la DIAN.
 
-**Resultado:** la integración pasó del envío por lotes a la validación en tiempo real a través del proveedor tecnológico, con tratamiento de inconsistencias fiscales y entrega del QR/CUFE necesarios para la tirilla de venta.
+**La evolución:** continué atendiendo diferencias de cálculo y casos especiales después de la entrega inicial, incluida la adaptación de descuentos globales y el tratamiento de ICUI durante 2025.
+
+**Resultado:** el flujo evolucionó del envío por lotes a una integración en tiempo real mediante Conexus, con tratamiento de inconsistencias fiscales y disponibilidad del QR/CUFE para impresión. Los cinco segundos eran una **restricción de diseño**, no una medición estadística publicada de latencia o cumplimiento en cada transacción.
+
+📄 **[Leer el caso de estudio completo](./case-study-facturacion-electronica.md)** — diagnóstico de datos, recálculo, integración, impresión heredada, límites y retrospectiva.
 
 ---
 
