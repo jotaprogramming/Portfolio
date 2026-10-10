@@ -6,6 +6,7 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 - **[LogiX: evolución de una plataforma crítica de distribución logística](./case-study-logix.md)** — reconstrucción bajo restricciones, ownership prolongado en producción, evolución hacia despliegues distribuidos, y retrospectiva sobre las consecuencias de las decisiones iniciales.
 - **[MCP: herramientas seguras para agentes sobre sistemas empresariales](./case-study-mcp.md)** — backend TypeScript/Node.js, integración de cuatro sistemas mediante PostgreSQL y HTTP, control de acceso, diagnóstico operativo y trazabilidad de activos fijos.
+- **[Siesa: integración de ERP corporativo en compras, distribución y facturación](./case-study-siesa.md)** — desarrollo de integración para compras, configuración de servicios mediante Connekta y Siesa Integrador, y diagnóstico de inconsistencias POS–ERP.
 
 ## Resumen
 
@@ -14,7 +15,7 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 | LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
 | MCP interno (herramientas para agentes) | Consultas de soporte y trazabilidad de activos fragmentadas entre aplicaciones | Diseño, desarrollo y despliegue | 4 sistemas integrados; uso interno por el equipo |
 | Facturación electrónica | Migración de envío por lotes a tiempo real bajo exigencia normativa | Responsable técnico | Red de puntos de venta |
-| Integración ERP | Datos inconsistentes entre sistemas internos | Diseño y desarrollo | 4 sistemas internos |
+| Integración ERP Siesa | Sincronización y consistencia de datos entre ERP y sistemas operativos | Desarrollo, configuración y optimización según el frente | Compras, distribución y facturación |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
 
 ## Sistemas en producción
@@ -62,11 +63,16 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ## Integración ERP corporativo (Siesa)
 
-**El problema:** los sistemas internos de gestión comercial, compras, ventas y distribución operaban con información desactualizada o inconsistente respecto al ERP corporativo, generando conflictos de datos entre sistemas, reprocesos manuales, y afectando la confiabilidad de la información usada en la operación diaria.
+**El problema:** Siesa ya era el ERP corporativo y la fuente de referencia para los procesos comerciales y transaccionales. El desafío era integrar las aplicaciones de compras, distribución y facturación, cuyos flujos, transformaciones y datos operativos podían quedar desactualizados o inconsistentes respecto al ERP.
 
-**Lo que hice:** integré el ERP corporativo con cada uno de estos sistemas, adaptando cada integración al sistema de destino. Diseñé el flujo de sincronización de datos maestros y transaccionales entre sistemas, estableciendo una única fuente de verdad para evitar conflictos de información. Sostuve estas integraciones en producción, atendiendo su soporte y evolución continua.
+**Lo que hice:** desarrollé la adaptación e integración de un portal de proveedores en Django para consultar sugeridos de compra y gestionar órdenes y requisiciones. En el frente de distribución configuré consultas, conectores y servicios web suministrados para su consumo mediante **Connekta y Siesa Integrador**; estas plataformas gestionan la comunicación con los servicios SOAP de Siesa, que yo no desarrollé. Posteriormente revisé y optimicé una integración **POS–Siesa** cuyo desarrollo inicial había realizado otro integrante del equipo, investigando diferencias de cálculo y cuentas por cobrar.
 
-**Resultado:** el ERP pasó de ser una fuente de datos aislada y desactualizada para los sistemas internos, a la fuente única de verdad que sostiene los flujos críticos de inventario, proveedores y clientes.
+**La evolución:** mantuve y optimicé los flujos tras la salida inicial a producción en 2024. En compras, la consulta de sugeridos evolucionó hacia una carga dinámica por proveedor. Más adelante, determinadas responsabilidades de distribución pasaron del portal de compras a LogiX.
+
+**Resultado:** las aplicaciones operativas pudieron intercambiar información con el ERP y evolucionar sus flujos, mientras el diagnóstico y las correcciones contribuyeron a tratar inconsistencias entre los sistemas consumidores y Siesa. No existe una medición consolidada de reducción de errores o tiempos que pueda atribuir exclusivamente a este proyecto.
+
+📄 **[Leer el caso de estudio completo](./case-study-siesa.md)** — responsabilidades, configuración de integración, decisiones, evolución y límites del sistema.
+
 
 ---
 
@@ -84,7 +90,7 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 Estas son tecnologías que he utilizado en los proyectos descritos. Solo comparto detalles técnicos cuya publicación no compromete información interna.
 
-Python · Django · Django REST Framework · Node.js · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · MCP (Model Context Protocol) · Streamable HTTP · Zod · APIs REST / Web Services (JSON, HTTP/S) · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
+Python · Django · Django REST Framework · Node.js · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · MCP (Model Context Protocol) · Streamable HTTP · Zod · APIs REST / Web Services (JSON, HTTP/S) · Siesa ERP · Connekta · Siesa Integrador · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
 
 ---
 
