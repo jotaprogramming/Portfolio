@@ -117,13 +117,9 @@ Las correcciones de este frente continuaron después de la salida principal a pr
 
 ## Evolución transversal: de entregar integraciones a sostenerlas
 
-Tras la etapa inicial de 2024 continué atendiendo necesidades relacionadas con Siesa: nuevas consultas, sincronización de datos comerciales y maestros, diagnóstico de fallas y evolución de aplicaciones dependientes del ERP.
+Después de la entrega inicial de 2024 continué atendiendo consultas, sincronización de datos, incidencias y cambios de las aplicaciones consumidoras. Esa continuidad convirtió una entrega puntual en una responsabilidad de mantenimiento en producción.
 
-En compras se mejoró el acceso a información por proveedor. En distribución, algunas responsabilidades se trasladaron progresivamente hacia LogiX. En facturación, parte del trabajo consistió en identificar discrepancias y coordinar soluciones entre responsables de diferentes componentes.
-
-Esa continuidad cambió mi relación con el proyecto: la integración dejó de ser una tarea de entrega puntual y pasó a ser una responsabilidad de diagnóstico y mantenimiento en producción.
-
-También mostró que la arquitectura de un sistema empresarial no se limita al código de una aplicación. Incluye **los límites entre productos, el contrato de los datos y las responsabilidades de cada integración**.
+La experiencia mostró que la arquitectura de integración también abarca **los límites entre productos, los contratos de datos y las responsabilidades de cada sistema**.
 
 ---
 
@@ -144,8 +140,6 @@ Estos resultados son cualitativos. No dispongo de una medición consolidada que 
 ## Límites y retrospectiva
 
 **Siesa ya era la fuente de referencia.** La integración no convirtió al ERP en fuente de verdad: buscaba mantener a los sistemas consumidores alineados con ella. Esa diferencia importa para explicar correctamente el problema original.
-
-**Mi autoría no fue uniforme.** Desarrollé una parte sustancial de la integración de compras; configuré capacidades existentes en las plataformas de integración para distribución; y revisé y optimicé una integración POS–Siesa iniciada por otro desarrollador. Presentar todo eso como un sistema diseñado íntegramente por una sola persona distorsionaría el trabajo.
 
 **La consistencia requiere entender el dominio.** A veces una diferencia proviene de un dato incorrecto en origen; otras, de una transformación defectuosa o de supuestos distintos entre sistemas. Sin esa distinción, una corrección puede ocultar un problema y generar otro.
 

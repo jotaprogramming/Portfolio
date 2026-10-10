@@ -2,11 +2,9 @@
 
 **Ingeniero de software | Python/Django · Integración de sistemas empresariales · TypeScript/Node.js**
 
-Trabajo en el desarrollo y evolución de sistemas empresariales en producción, principalmente en entornos de retail. Desde 2022 he participado en proyectos de logística, compras, facturación y plataformas de cara al cliente, asumiendo responsabilidades de diseño, implementación, diagnóstico de incidentes y mantenimiento a largo plazo.
+Desarrollo y evoluciono sistemas empresariales en producción, principalmente en retail. Mi trabajo combina **Python/Django, integración de sistemas y backend TypeScript/Node.js**, con responsabilidad sobre arquitectura, diagnóstico de incidentes, despliegue y mantenimiento.
 
-Mi especialidad es **conectar sistemas que tienen reglas, datos y restricciones diferentes**, sin perder de vista la operación que depende de ellos. He liderado técnicamente la evolución de LogiX, trabajado en integraciones con el ERP Siesa y desarrollado un servidor MCP interno en TypeScript/Node.js para que agentes autorizados consulten y correlacionen datos de varias aplicaciones.
-
-**Áreas de trabajo:** arquitectura y evolución de aplicaciones Django; integraciones de ERP, APIs y sistemas heredados; diseño de datos y lógica SQL; backend TypeScript/Node.js y herramientas MCP; despliegue, diagnóstico de producción y observabilidad con Docker, Linux y Grafana.
+He liderado técnicamente LogiX, participado en integraciones con Siesa y desarrollado un servidor MCP para agentes que consultan información empresarial mediante herramientas autorizadas. Me centro en **hacer interoperables sistemas con reglas distintas**, preservando la consistencia de los datos y la operación.
 
 Este repositorio documenta **decisiones de ingeniería, límites, resultados y aprendizajes**, no solamente tecnologías. El código de los proyectos empresariales pertenece a las organizaciones correspondientes y no se publica; se omiten configuraciones internas y datos sensibles.
 
@@ -17,79 +15,51 @@ Este repositorio documenta **decisiones de ingeniería, límites, resultados y a
 - **[Siesa: integración de ERP corporativo en compras, distribución y facturación](./case-study-siesa.md)** — desarrollo de integración para compras, configuración de servicios mediante Connekta y Siesa Integrador, y diagnóstico de inconsistencias POS–ERP.
 - **[Facturación electrónica: reconstrucción de datos fiscales en tiempo real](./case-study-facturacion-electronica.md)** — adaptación de una integración heredada con Conexus, tratamiento de inconsistencias fiscales y publicación de QR/CUFE en la impresión de caja.
 
-## Resumen
-
-| Proyecto | Problema | Rol | Escala |
-|---|---|---|---|
-| LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
-| MCP interno (herramientas para agentes) | Consultas de soporte y trazabilidad de activos fragmentadas entre aplicaciones | Diseño, desarrollo y despliegue | 4 sistemas integrados; uso interno por el equipo |
-| Facturación electrónica (Conexus) | Datos fiscales incompletos e integración por lotes ante requisitos de tiempo real | Responsable técnico y mantenimiento evolutivo | Red de puntos de venta |
-| Integración ERP Siesa | Sincronización y consistencia de datos entre ERP y sistemas operativos | Desarrollo, configuración y optimización según el frente | Compras, distribución y facturación |
-| Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
-
 ## LogiX — Plataforma de Gestión Logística y Distribución
 
-**El problema:** el sistema de distribución dejó de responder a una operación que exige alta productividad y velocidad logística. Su integración inicial con el ERP introdujo dificultades de sincronización, inconsistencias de datos y dependencias que lo hacían fallar en etapas críticas, comprometiendo la confiabilidad de la información. A esto se sumaba que el sistema había sido construido para resolver una necesidad puntual y no una proyección del negocio, lo que dificultaba su escalabilidad y su mantenimiento a largo plazo.
+Lideré la reconstrucción de un sistema logístico heredado y mantengo su evolución técnica. Desarrollé la primera versión con **Django** bajo restricciones de equipo y plazo. Posteriormente la plataforma evolucionó a instancias independientes con APIs REST, nuevos despliegues en Docker y reglas configurables por operación. Implementé observabilidad de su integración con Siesa mediante **Grafana**.
 
-**Lo que hice:** lideré el proyecto en todo su ciclo de vida de desarrollo de software —análisis, diseño, desarrollo, pruebas y despliegue— y mantengo su ownership técnico desde entonces. Implementé mecanismos de concurrencia e idempotencia en los procesos de sincronización con el ERP. La arquitectura inicial fue monolítica, condicionada por restricciones de tiempo y capacidad del equipo frente a una propuesta desacoplada que habría sido preferible técnicamente.
+**Alcance:** distribución para **3 centros y 24 tiendas**. En la primera entrega, la importación pasó de unos cinco minutos a tres segundos y el despacho promedio por unidad de carga, de tres minutos a diez segundos. Estas cifras son históricas y no representan el rendimiento actual.
 
-**La evolución:** al crecer más allá de su alcance original, LogiX pasó de una instalación única a un modelo de instancias independientes que se comunican mediante APIs REST. Adopté contenedores progresivamente para las nuevas instancias, logrando aislamiento y facilitando una eventual migración a infraestructura dedicada, todavía pendiente. Refactoricé el producto para soportar operaciones con reglas distintas sobre una misma base de código y amplié su papel en el dominio: de consumir información del ERP a también originar determinadas operaciones y absorber procesos que antes obligaban a los usuarios a trabajar directamente sobre él.
-
-**Observabilidad:** implementé un tablero en Grafana para dar seguimiento a las integraciones LogiX–Siesa mediante información registrada por la aplicación: volumen de solicitudes, respuestas ausentes, errores y latencias. Se utiliza para analizar el comportamiento de una dependencia crítica con evidencia operativa.
-
-**Resultado:** LogiX soporta hoy procesos de distribución en 3 centros de distribución y 24 tiendas, en producción y bajo evolución continua. En la primera entrega, la importación de datos pasó de unos cinco minutos a unos tres segundos y el despacho promedio por unidad de carga, de unos tres minutos a unos diez segundos. Son resultados históricos; posteriormente fue necesario reducir la concurrencia hacia el ERP.
-
-📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de ingeniería, límites actuales y qué habría hecho diferente.
+📄 **[Caso de estudio: LogiX](./case-study-logix.md)** — arquitectura, evolución, resultados y límites.
 
 ---
 
-## MCP interno — Herramientas para agentes de IA y consulta multi-sistema
+## MCP interno — Herramientas para agentes de IA
 
-**El problema:** diagnosticar incidencias operativas exigía consultar distintas aplicaciones y reconstruir relaciones entre sus datos. Después surgió otra necesidad: rastrear activos fijos cuya historia estaba fragmentada entre sistemas históricos y actuales, sin saber de antemano en cuáles había registros.
+Desarrollé y desplegué un servidor **MCP en TypeScript/Node.js** que conecta cuatro sistemas empresariales mediante herramientas de consulta autorizadas. Se utiliza internamente para apoyar diagnósticos de proveedores, cuentas y citas. En pruebas también permitió consultar movimientos históricos y relacionar registros de activos entre dos fuentes.
 
-**Lo que hice:** diseñé y desplegué un servidor MCP (Model Context Protocol) en TypeScript/Node.js, con transporte Streamable HTTP, validación de contratos mediante Zod y ejecución en Docker. Actualmente expone herramientas de consulta sobre **cuatro sistemas empresariales**. Los tres sistemas originales se consultan mediante PostgreSQL con usuarios de solo lectura y permisos mínimos; la nueva aplicación de activos se integra mediante HTTP `GET` y un token Bearer con permisos de lectura concedidos en el sistema de origen. Los agentes usan herramientas delimitadas, sin recibir las credenciales de los sistemas.
+Utiliza Streamable HTTP, Zod y Docker, con acceso de solo lectura mediante PostgreSQL o HTTP según la fuente. **No modifica ni sincroniza datos.**
 
-**Resultado:** el servicio se utiliza internamente por integrantes del equipo desde distintos clientes compatibles con MCP. Además de apoyar incidencias de cuentas, proveedores y citas, ahora permite consultar activos, facturas y traslados históricos. En pruebas con agentes se consultaron movimientos y se correlacionó información entre el histórico y la aplicación vigente, incluyendo casos donde un activo estaba presente en un sistema pero no en el otro. La versión actual es **exclusivamente de consulta**: no modifica ni sincroniza registros, y queda pendiente integrar otra fuente utilizada en la gestión de activos.
-
-📄 **[Leer el caso de estudio completo](./case-study-mcp.md)** — decisiones técnicas, controles de acceso y evolución hacia la trazabilidad de activos.
+📄 **[Caso de estudio: MCP](./case-study-mcp.md)** — contratos, seguridad y pruebas operativas.
 
 ---
 
 ## Facturación electrónica en tiempo real (Conexus)
 
-**El problema:** recibí una integración incompleta que enviaba facturas por lotes y necesitaba adaptarse a las exigencias de procesamiento en tiempo real. El sistema de punto de venta no almacenaba todos los valores fiscales que requería la integración: sus registros de ventas, devoluciones, descuentos e impuestos incluían convenciones de signos, redondeos y cálculos inconsistentes. Además, el circuito de impresión heredado debía incorporar QR y CUFE sin interrumpir la atención en caja.
+Asumí una integración heredada por lotes que necesitaba procesar facturas en tiempo real, pese a recibir datos fiscales incompletos del POS. Analicé **más de veinte casos de inconsistencia** y desarrollé reconstrucción y recálculo mediante **PL/pgSQL**, sin modificar los registros originales.
 
-**Lo que hice:** asumí la responsabilidad técnica de la integración y analicé más de veinte casos reales de facturación para identificar patrones de inconsistencia. Implementé funciones de recálculo y conciliación fiscal en **PL/pgSQL**, preservando los registros originales del POS, y adapté el envío al flujo en tiempo real bajo un objetivo operativo de **cinco segundos por factura**. Integré el webservice del proveedor tecnológico **Conexus**, que se encarga de la comunicación directa con la DIAN y devuelve el CUFE y el QR en base64. Desarrollé el procesamiento y la publicación de la imagen QR para que un sistema heredado pudiera incorporarla a la tirilla. Para ciertas devoluciones totales utilicé el XML de la factura ya emitida como fuente para generar la nota correspondiente, sin construir mensajes XML dirigidos a la DIAN.
+Integré el webservice de **Conexus**, proveedor que gestiona la comunicación directa con la DIAN y devuelve CUFE y QR. Adapté esos resultados a la impresión y traté casos de devoluciones y descuentos. Los **cinco segundos por factura** eran una restricción operativa, no una latencia media medida.
 
-**La evolución:** continué atendiendo diferencias de cálculo y casos especiales después de la entrega inicial, incluida la adaptación de descuentos globales y el tratamiento de ICUI durante 2025.
-
-**Resultado:** el flujo evolucionó del envío por lotes a una integración en tiempo real mediante Conexus, con tratamiento de inconsistencias fiscales y disponibilidad del QR/CUFE para impresión. Los cinco segundos eran una **restricción de diseño**, no una medición estadística publicada de latencia o cumplimiento en cada transacción.
-
-📄 **[Leer el caso de estudio completo](./case-study-facturacion-electronica.md)** — diagnóstico de datos, recálculo, integración, impresión heredada, límites y retrospectiva.
+📄 **[Caso de estudio: facturación electrónica](./case-study-facturacion-electronica.md)** — datos fiscales, integración y restricciones.
 
 ---
 
 ## Integración ERP corporativo (Siesa)
 
-**El problema:** Siesa ya era el ERP corporativo y la fuente de referencia para los procesos comerciales y transaccionales. El desafío era integrar las aplicaciones de compras, distribución y facturación, cuyos flujos, transformaciones y datos operativos podían quedar desactualizados o inconsistentes respecto al ERP.
+Participé en tres frentes con Siesa, ERP corporativo de referencia: desarrollé la integración de un portal **Django** para compras y requisiciones; configuré consultas, conectores y servicios proporcionados mediante **Connekta y Siesa Integrador** para distribución; y diagnostiqué y optimicé una integración **POS–Siesa** iniciada por un compañero.
 
-**Lo que hice:** desarrollé la adaptación e integración de un portal de proveedores en Django para consultar sugeridos de compra y gestionar órdenes y requisiciones. En el frente de distribución configuré consultas, conectores y servicios web suministrados para su consumo mediante **Connekta y Siesa Integrador**; estas plataformas gestionan la comunicación con los servicios SOAP de Siesa, que yo no desarrollé. Posteriormente revisé y optimicé una integración **POS–Siesa** cuyo desarrollo inicial había realizado otro integrante del equipo, investigando diferencias de cálculo y cuentas por cobrar.
+Mantuve y evolucioné estos flujos después de su entrega inicial en 2024. La comunicación SOAP de los servicios configurados la realizan las plataformas de integración.
 
-**La evolución:** mantuve y optimicé los flujos tras la salida inicial a producción en 2024. En compras, la consulta de sugeridos evolucionó hacia una carga dinámica por proveedor. Más adelante, determinadas responsabilidades de distribución pasaron del portal de compras a LogiX.
-
-**Resultado:** las aplicaciones operativas pudieron intercambiar información con el ERP y evolucionar sus flujos, mientras el diagnóstico y las correcciones contribuyeron a tratar inconsistencias entre los sistemas consumidores y Siesa. No existe una medición consolidada de reducción de errores o tiempos que pueda atribuir exclusivamente a este proyecto.
-
-📄 **[Leer el caso de estudio completo](./case-study-siesa.md)** — responsabilidades, configuración de integración, decisiones, evolución y límites del sistema.
+📄 **[Caso de estudio: Siesa](./case-study-siesa.md)** — responsabilidades y decisiones técnicas.
 
 ---
 
 ## Modernización del registro de clientes
 
-**El problema:** el proceso de inscripción a los programas de fidelización y facturación electrónica presentaba un formulario extenso, con captura de datos innecesarios y sin estandarización, lo que generaba fricción en el registro, mala calidad de datos, y duplicidad de puntos de acceso por tienda.
+Lideré la simplificación del registro para fidelización y facturación electrónica: reducción de fricción y datos innecesarios, estandarización, separación de acceso público y consolidación interna, y verificación de identidad por escaneo de documento.
 
-**Lo que hice:** lideré el rediseño del proceso de inscripción, definiendo qué datos eran realmente necesarios según la normativa fiscal vigente, y diseñando una arquitectura desacoplada entre la capa pública de cara al cliente y el sistema interno de consolidación de datos. Implementé un flujo de captura guiado paso a paso, y agregué verificación automática de identidad mediante escaneo de cédula.
-
-**Resultado:** el proceso de inscripción pasó de un formulario extenso y con datos inconsistentes, a un flujo simplificado, estandarizado y verificado automáticamente.
+**Alcance:** una operación de **24 tiendas**.
 
 ---
 
