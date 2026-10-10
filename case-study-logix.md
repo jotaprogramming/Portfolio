@@ -81,9 +81,7 @@ Elegí Django porque era la tecnología que el equipo ya dominaba. Cualquier alt
 
 Una crítica válida al resultado es que el sistema no quedó reactivo, algo que otro stack habría facilitado. La prioridad, sin embargo, era la productividad de la operación, no la interfaz.
 
-**Lo que se ganó:** una solución en producción dentro del plazo que la operación necesitaba.
-
-**Lo que se sacrificó:** independencia del ERP y, con ella, resiliencia ante su indisponibilidad.
+> **Trade-off inicial:** una solución entregada dentro del plazo que la operación necesitaba, a cambio de mantener la dependencia del ERP y una resiliencia limitada ante su indisponibilidad.
 
 ---
 
@@ -119,9 +117,7 @@ Desplegué sobre Ubuntu Server con Gunicorn y Apache2, como instalación directa
 
 ## De proyecto a producto
 
-La primera entrega no cerró el proyecto. Mantuve el ownership técnico y durante los meses siguientes corregí incidentes, mejoré rendimiento, optimicé procesos, añadí funcionalidades y refactoricé componentes sobre un sistema que ya tenía usuarios reales.
-
-Es la parte del trabajo que más me ha enseñado: las decisiones de la primera versión dejaron de ser hipótesis y empezaron a producir consecuencias observables.
+La primera entrega no cerró el proyecto: seguí corrigiendo incidentes, mejorando procesos y refactorizando componentes con usuarios reales. Esa continuidad permitió evaluar las decisiones iniciales por sus consecuencias en producción.
 
 ---
 
@@ -181,17 +177,22 @@ El cambio conceptual: antes, una instalación estaba fuertemente ligada al servi
 
 Eso permitió algo deliberado: **varias instancias podían compartir infraestructura al inicio, con la posibilidad de separarlas después si alguna lo necesitaba.** La contenerización no se adoptó porque cada instancia tuviera su propio servidor, sino precisamente para no tener que decidir eso desde el primer día.
 
-### La transición fue progresiva
+### Transición y beneficios
 
-No reescribí la infraestructura existente. Durante un periodo coexistieron estrategias distintas: los centros podían seguir operando sobre Ubuntu Server con Apache2 mientras las instancias nuevas usaban Docker con Nginx.
+La adopción fue progresiva: coexistieron instalaciones directas en Ubuntu Server con Apache2 e instancias nuevas en Docker con Nginx. No se reescribió toda la infraestructura por uniformidad tecnológica.
 
-La estrategia nueva se aplicó donde resolvía un problema real, no por uniformidad tecnológica.
+La contenerización ya facilita el aislamiento y despliegues reproducibles en infraestructura compartida. También permitiría trasladar instancias a servidores dedicados, pero **esa migración aún no se ha ejecutado**.
 
-### Beneficios actuales y portabilidad futura
+### Evolución de la solución
 
-La contenerización permitió que varias instancias independientes compartieran infraestructura con mayor aislamiento y despliegues reproducibles. Esos beneficios ya se aprovechan en producción.
+```mermaid
+flowchart LR
+    A["Primera entrega<br/>Monolito Django"] --> B["Expansión<br/>Instancias del mismo monolito"]
+    B --> C["Colaboración entre instancias<br/>APIs REST"]
+    C --> D["Nuevas instalaciones<br/>Docker y Nginx"]
+```
 
-También quedó preparada la posibilidad de trasladar una de las operaciones a infraestructura dedicada con menor dependencia de la configuración del servidor original. Esa migración todavía no se ha ejecutado; la portabilidad es una capacidad buscada, no un beneficio ya demostrado mediante una migración real.
+*Esquema de evolución tecnológica, no de la topología de producción. La transición a contenedores fue progresiva.*
 
 ---
 
@@ -331,3 +332,7 @@ La arquitectura inicial resolvió correctamente el problema que existía bajo la
 Varias de sus limitaciones actuales son consecuencias conocidas de decisiones que fueron razonables en su contexto. Otras decisiones, tomadas pensando en flexibilidad futura, terminaron produciendo beneficios que en su momento eran solo una apuesta. Y algunas restricciones no vinieron de decisiones propias en absoluto, sino de una dependencia externa cuyo comportamiento observado cambió sin que pudiera verificarse la causa exacta.
 
 Haber mantenido el ownership durante toda esa evolución me permitió ver las dos caras de esas decisiones: el beneficio inmediato que hicieron posible y el costo —o el beneficio adicional— que apareció cuando el sistema tuvo que crecer.
+
+---
+
+[← Volver al portafolio](./README.md)

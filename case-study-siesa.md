@@ -20,6 +20,18 @@ Los frentes estaban relacionados, pero no eran una única solución que yo hubie
 
 Esta distinción es parte del caso: integrar un sistema empresarial también puede requerir configurar una plataforma existente o identificar defectos en componentes que no son propios.
 
+### Relación funcional entre los frentes
+
+```mermaid
+flowchart TD
+    A["Compras / portal Django<br/>Desarrollo de integración"] --- S["Siesa<br/>ERP corporativo"]
+    B["Distribución<br/>Configuración de servicios"] --- M["Connekta / Siesa Integrador<br/>Comunicación SOAP"]
+    M --- S
+    C["Facturación POS<br/>Diagnóstico y optimización"] --- S
+```
+
+*Las líneas indican relación funcional con el ERP; no describen conexiones directas, endpoints ni flujos internos. Los servicios SOAP los gestiona la plataforma de integración.*
+
 ---
 
 ## 1. Compras y requisiciones: adaptar un portal existente
@@ -55,7 +67,7 @@ También se incorporaron mecanismos de registro para facilitar el seguimiento de
 
 A finales de junio de 2026, la responsabilidad de realizar determinadas dispersiones o requisiciones pasó del portal a **LogiX**, que había evolucionado para asumir una parte mayor de la lógica operativa de distribución.
 
-**Decisión de ingeniería destacable:** integrar un aplicativo heredado no significa congelar sus responsabilidades. A medida que cambian los límites de los productos, es razonable trasladar procesos al sistema que mejor representa el dominio, sin presentar ese cambio como una reescritura total.
+> **Decisión de ingeniería:** integrar un aplicativo heredado no obliga a congelar sus responsabilidades. A medida que cambia el dominio, algunos procesos pueden trasladarse al sistema que mejor los representa, sin implicar una reescritura total.
 
 ---
 
@@ -117,13 +129,9 @@ Las correcciones de este frente continuaron después de la salida principal a pr
 
 ## Evolución transversal: de entregar integraciones a sostenerlas
 
-Tras la etapa inicial de 2024 continué atendiendo necesidades relacionadas con Siesa: nuevas consultas, sincronización de datos comerciales y maestros, diagnóstico de fallas y evolución de aplicaciones dependientes del ERP.
+Después de la entrega inicial de 2024 continué atendiendo consultas, sincronización de datos, incidencias y cambios de las aplicaciones consumidoras. Esa continuidad convirtió una entrega puntual en una responsabilidad de mantenimiento en producción.
 
-En compras se mejoró el acceso a información por proveedor. En distribución, algunas responsabilidades se trasladaron progresivamente hacia LogiX. En facturación, parte del trabajo consistió en identificar discrepancias y coordinar soluciones entre responsables de diferentes componentes.
-
-Esa continuidad cambió mi relación con el proyecto: la integración dejó de ser una tarea de entrega puntual y pasó a ser una responsabilidad de diagnóstico y mantenimiento en producción.
-
-También mostró que la arquitectura de un sistema empresarial no se limita al código de una aplicación. Incluye **los límites entre productos, el contrato de los datos y las responsabilidades de cada integración**.
+La experiencia mostró que la arquitectura de integración también abarca **los límites entre productos, los contratos de datos y las responsabilidades de cada sistema**.
 
 ---
 
@@ -145,8 +153,6 @@ Estos resultados son cualitativos. No dispongo de una medición consolidada que 
 
 **Siesa ya era la fuente de referencia.** La integración no convirtió al ERP en fuente de verdad: buscaba mantener a los sistemas consumidores alineados con ella. Esa diferencia importa para explicar correctamente el problema original.
 
-**Mi autoría no fue uniforme.** Desarrollé una parte sustancial de la integración de compras; configuré capacidades existentes en las plataformas de integración para distribución; y revisé y optimicé una integración POS–Siesa iniciada por otro desarrollador. Presentar todo eso como un sistema diseñado íntegramente por una sola persona distorsionaría el trabajo.
-
 **La consistencia requiere entender el dominio.** A veces una diferencia proviene de un dato incorrecto en origen; otras, de una transformación defectuosa o de supuestos distintos entre sistemas. Sin esa distinción, una corrección puede ocultar un problema y generar otro.
 
 **No toda evolución exige rehacer el sistema.** Adaptar un portal existente y utilizar Connekta/Siesa Integrador fueron decisiones determinadas por la tecnología y los procesos disponibles. Cuando los límites del sistema de distribución dejaron de responder a la operación, apareció la necesidad de una transformación más profunda, abordada en LogiX.
@@ -162,3 +168,7 @@ Este proyecto me enseñó a trabajar con integraciones de distinta naturaleza: u
 La principal habilidad que desarrollé no fue aprender a consumir un servicio particular de un ERP. Fue **reconstruir cómo circula y cambia la información entre sistemas, identificar la responsabilidad de cada frontera y corregir problemas sin perder de vista los procesos que dependen de esos datos**.
 
 Esa experiencia dio contexto a decisiones posteriores en LogiX y al trabajo más reciente de integración de sistemas empresariales con herramientas para agentes.
+
+---
+
+[← Volver al portafolio](./README.md)
