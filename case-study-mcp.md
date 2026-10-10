@@ -14,7 +14,7 @@ La calidad y velocidad del diagnóstico dependían de conocer **qué consultar, 
 
 ## Objetivo
 
-Construir una interfaz uniforme de herramientas que permitiera a agentes de IA consultar y correlacionar información de varios sistemas empresariales, sin proporcionar a esos agentes credenciales de las bases de datos ni acceso indiscriminado a los sistemas.
+Construir una interfaz uniforme de herramientas que permitiera a agentes de IA consultar y correlacionar información de varios sistemas empresariales, sin proporcionar a esos agentes credenciales directas ni acceso indiscriminado a los sistemas.
 
 La meta era apoyar el diagnóstico de soporte con información verificable. **No se trataba de construir un modelo de IA ni un agente autónomo propio**: los clientes compatibles con MCP aportan el razonamiento y la elección de herramientas; el servidor desarrollado por mí define qué consultas están disponibles y bajo qué restricciones.
 
@@ -22,13 +22,14 @@ La meta era apoyar el diagnóstico de soporte con información verificable. **No
 
 El proyecto comenzó en septiembre de 2026. La base funcional está desplegada y ha sido utilizada internamente por mí y por otros integrantes del equipo.
 
-La implementación actual integra **tres sistemas empresariales**:
+La implementación actual integra **cuatro sistemas empresariales**:
 
 1. Una fuente de información maestra sobre terceros, proveedores y usuarios asociados.
 2. Un portal de autogestión, con información de cuentas y trazabilidad de operaciones de compra.
-3. Un portal de citas, con datos de usuarios y programación de entregas de proveedores.
+3. Una aplicación de citas a proveedores que también conserva un módulo histórico de activos fijos, con facturas de adquisición y traslados.
+4. Una aplicación vigente de gestión de activos, que contiene mantenimientos, traslados, entregas y otros registros operativos, integrada mediante un servicio HTTP.
 
-La primera versión integraba las dos primeras fuentes. El tercer sistema se incorporó cuando los tickets reales evidenciaron que el diagnóstico de acceso y citas exigía reconstruir una cadena más completa.
+La primera versión integraba las dos primeras fuentes y después se añadió la de citas. En octubre de 2026 amplié las herramientas de esa **misma fuente** para consultar los activos históricos y añadí una **cuarta fuente** a través de HTTP. Habilitar el módulo histórico no supone una integración empresarial adicional por sí misma.
 
 ## Diseño de la solución
 
@@ -38,32 +39,37 @@ Desarrollé el servidor en **TypeScript sobre Node.js**, utilizando **MCP** para
 
 El servidor se configuró en distintos clientes compatibles con MCP y en equipos de compañeros. Esta validación permitió comprobar que las herramientas no dependían de un solo cliente ni de una configuración de uso personal.
 
+La ampliación introdujo un segundo mecanismo de integración, sin cambiar la interfaz que consumen los clientes:
+
+- **PostgreSQL:** cuentas independientes de solo lectura y permisos mínimos para los tres sistemas previamente conectados.
+- **HTTP:** peticiones `GET` autenticadas mediante un token Bearer concedido en la aplicación vigente de activos con permisos de lectura. El token permanece en el lado del servicio; no se entrega a los agentes.
+
 La arquitectura conceptual es:
 
 ```mermaid
 flowchart TD
-    A["Cliente / agente compatible con MCP"] --> B["Servidor MCP<br/>TypeScript y Node.js"]
+    A["Cliente / agente compatible con MCP"] --> B["Servidor MCP en TypeScript y Node.js"]
     B --> C["Herramientas de consulta con contratos definidos"]
-    C --> D["Acceso de solo lectura y campos autorizados"]
-    D --> E["Sistema empresarial A"]
-    D --> F["Sistema empresarial B"]
-    D --> G["Sistema empresarial C"]
+    C --> D["PostgreSQL: solo lectura"]
+    C --> E["HTTP GET: acceso autorizado de lectura"]
+    D --> F["Tres sistemas empresariales"]
+    E --> G["Aplicación vigente de activos"]
 ```
 
-El diagrama es intencionalmente conceptual: no representa la topología de producción ni los mecanismos internos de conexión.
+El diagrama es conceptual: no representa la topología de producción, direcciones internas ni configuraciones de conexión.
 
 ### Seguridad como restricción de diseño
 
-La decisión más importante fue **no entregar a los agentes acceso general a las bases de datos**.
+La decisión más importante fue **no entregar a los agentes acceso general a los sistemas empresariales ni sus credenciales**.
 
-Cada fuente utiliza una cuenta independiente de PostgreSQL con permisos mínimos, exclusivamente de lectura y restringidos a los datos autorizados. Los permisos se aplican en la capa de datos, no únicamente mediante instrucciones al agente.
+Las fuentes PostgreSQL utilizan cuentas independientes con permisos mínimos de lectura y restricciones sobre los datos disponibles. En la integración HTTP, el sistema de origen concedió un token Bearer con permisos de lectura para los endpoints `GET` utilizados. **No son mecanismos de autorización equivalentes:** las restricciones de una cuenta PostgreSQL no deben atribuirse automáticamente a una API HTTP.
 
-Esto establece dos límites complementarios:
+Esto establece dos controles complementarios:
 
-- **La herramienta:** ofrece operaciones concretas para recuperar información útil de soporte, en lugar de exponer consultas arbitrarias sobre todos los datos.
-- **La fuente:** restringe los registros y campos accesibles, de modo que una herramienta no puede recuperar información para la que su cuenta no tenga permisos.
+- **La herramienta:** expone operaciones concretas de consulta en lugar de permitir consultas arbitrarias o modificaciones generales.
+- **La fuente:** aplica la autorización que corresponda a su mecanismo de acceso, ya sea PostgreSQL o HTTP.
 
-El servicio exige además autenticación para los clientes autorizados. No se publican tokens, credenciales, direcciones internas ni estructuras de acceso.
+El servicio exige además autenticación para los clientes autorizados. No se publican tokens, credenciales, direcciones internas ni estructuras de acceso. La autenticación del cliente MCP no demuestra, por sí sola, autorización individual sobre todos los activos; ese alcance debe evaluarse por herramienta y sistema de origen.
 
 Una prueba explícita consistió en pedir credenciales de un usuario: el agente podía obtener el identificador permitido, pero **no la contraseña**, porque ese dato no estaba disponible mediante los permisos concedidos. La recuperación de acceso debía continuar por los canales establecidos del equipo de soporte.
 
@@ -103,13 +109,32 @@ Tras incorporar la tercera fuente, las herramientas permitieron realizar consult
 
 También fue posible distinguir registros asociados a distintos portafolios de un mismo proveedor, en lugar de asumir que una coincidencia de nombre implicaba una única entidad válida.
 
+### 5. Trazabilidad de activos fijos entre aplicaciones históricas y actuales
+
+La necesidad surgió de un compañero del equipo: para conocer la historia de un activo fijo tenía que revisar tres aplicaciones, sin saber necesariamente en cuáles existían registros. Esa búsqueda fragmentada dificultaba distinguir la adquisición, los movimientos y las actividades de mantenimiento de un mismo activo.
+
+**Reutilización de una integración existente.** La aplicación ya conectada para consultas de citas conserva un módulo de activos fijos que actualmente funciona como histórico. Añadí herramientas para consultar los activos, sus datos de adquisición, facturas y movimientos entre orígenes y destinos. La ampliación aprovechó la conexión existente y no requirió agregar otra fuente empresarial.
+
+**Nueva integración.** Añadí la aplicación vigente de activos mediante un servicio HTTP consultado con `GET` y un token Bearer provisto con permisos de lectura. Esta fuente contiene registros relacionados con activos, mantenimientos, traslados y entregas.
+
+**Pruebas realizadas con agentes:**
+
+- Búsqueda de un activo por un identificador y recuperación de sus datos descriptivos y de adquisición desde el sistema histórico.
+- Consulta de sus traslados y presentación ordenada de movimientos con origen, destino y fecha.
+- Consulta de ambas fuentes para relacionar registros del mismo activo o determinar que aparecía en una de ellas y no en la otra.
+
+Las pruebas mostraron que **un traslado histórico no confirma necesariamente la ubicación o custodia actual**. Asimismo, que una búsqueda no arroje registros en una fuente no significa por sí solo que el activo nunca existió allí.
+
+El resultado demostrado es la consulta y **correlación asistida entre las dos fuentes de activos ya integradas**. No representa todavía una reconstrucción exhaustiva y automatizada de todo el ciclo de vida, ni incorpora la tercera aplicación que consulta el equipo.
+
 ## Resultados demostrados
 
-- **Tres sistemas integrados** detrás de una interfaz de herramientas compatible con MCP.
+- **Cuatro sistemas empresariales integrados** detrás de una interfaz de herramientas compatible con MCP: tres mediante PostgreSQL y uno mediante HTTP.
 - **Servidor backend en TypeScript/Node.js**, desplegado con Docker y disponible para uso interno.
 - **Uso por otros integrantes del equipo** desde clientes compatibles, no solamente en el entorno de desarrollo original.
 - **Diagnósticos validados con tickets reales:** identificación de cuentas existentes, prerrequisitos faltantes, diferencias de identidad y necesidad de obtener evidencia adicional antes de atribuir causas.
-- **Acceso acotado por diseño:** cuentas independientes de solo lectura y restricción de campos sensibles desde las fuentes.
+- **Pruebas de trazabilidad de activos:** consulta de adquisiciones y traslados históricos y correlación con la fuente vigente, incluyendo la identificación de registros presentes en una fuente y ausentes en otra.
+- **Acceso acotado de solo lectura:** cuentas PostgreSQL de permisos mínimos y peticiones HTTP `GET` mediante un token autorizado para lectura.
 
 No atribuyo al proyecto cifras de ahorro de tiempo, reducción de tickets ni mejoras de productividad que no se hayan medido. El resultado comprobado es su funcionamiento y utilidad para los escenarios operativos documentados.
 
@@ -121,13 +146,17 @@ No atribuyo al proyecto cifras de ahorro de tiempo, reducción de tickets ni mej
 
 **Dependencia de los sistemas de origen.** La calidad del diagnóstico depende de la información que esas aplicaciones registran y permiten consultar. Un agente no debe interpretar información ausente como prueba de una causa concreta.
 
-**Evolución futura, no implementada.** Existe la intención de añadir operaciones específicas de escritura, por ejemplo habilitar usuarios mediante herramientas con permisos acotados. Esa capacidad **no forma parte de la versión actual** y requeriría controles apropiados antes de habilitarse.
+**Tercera fuente de activos pendiente.** Está prevista la evaluación de una integración adicional con la aplicación restante que utiliza el equipo para consultar activos. La correlación actual cubre solo las dos fuentes de activos conectadas.
+
+**Sincronización pendiente de análisis.** Se ha planteado permitir que un agente proponga la actualización del sistema vigente a partir de información de los otros sistemas. Antes de habilitar cualquier escritura, sería necesario definir correspondencia de identidades entre fuentes, autoridad de los datos, reglas de reconciliación, controles de permisos, aprobación y auditoría. **No se han implementado acciones de sincronización.**
+
+**Otras operaciones de escritura no implementadas.** Se han considerado herramientas de administración con permisos acotados, por ejemplo la habilitación de usuarios. También requerirían controles específicos antes de incorporarse.
 
 ## Reflexión de ingeniería
 
 La parte más importante de este proyecto no fue conectar un asistente con una base de datos. Fue **convertir conocimiento operativo disperso en capacidades reutilizables**, con contratos explícitos y límites de autorización verificables.
 
-El diseño separa tres responsabilidades: los sistemas empresariales mantienen sus datos y permisos; el servidor MCP expone únicamente capacidades autorizadas; y el cliente agente interpreta la solicitud y utiliza las herramientas disponibles para construir un diagnóstico.
+El diseño separa tres responsabilidades: los sistemas empresariales mantienen sus datos y permisos; el servidor MCP expone herramientas de consulta autorizadas; y el cliente agente interpreta la solicitud y utiliza esas herramientas para construir un diagnóstico o relacionar registros. La ampliación desde PostgreSQL hacia una API HTTP preserva esa separación.
 
 Esta separación permite incorporar nuevas fuentes sin distribuir credenciales a cada cliente y obliga a distinguir lo que una herramienta puede demostrar de lo que un agente solo puede inferir.
 
