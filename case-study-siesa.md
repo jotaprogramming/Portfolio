@@ -23,11 +23,12 @@ Esta distinción es parte del caso: integrar un sistema empresarial también pue
 ### Relación funcional entre los frentes
 
 ```mermaid
-flowchart TD
-    A["Compras / portal Django<br/>Desarrollo de integración"] --- S["Siesa<br/>ERP corporativo"]
-    B["Distribución<br/>Configuración de servicios"] --- M["Connekta / Siesa Integrador<br/>Comunicación SOAP"]
+flowchart TB
+    S["Siesa<br/>ERP corporativo"]
+    A["Compras<br/>Desarrollo de portal"] --- S
+    B["Distribución<br/>Configuración"] --- M["Connekta /<br/>Siesa Integrador"]
     M --- S
-    C["Facturación POS<br/>Diagnóstico y optimización"] --- S
+    C["POS–Siesa<br/>Diagnóstico y mejoras"] --- S
 ```
 
 *Las líneas indican relación funcional con el ERP; no describen conexiones directas, endpoints ni flujos internos. Los servicios SOAP los gestiona la plataforma de integración.*
