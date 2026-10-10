@@ -1,16 +1,18 @@
 # Portfolio — Jerson Guerrero
 
-A lo largo de mi carrera he liderado el diseño e integración de sistemas críticos de negocio: distribución logística, facturación electrónica, integración de ERP corporativo y plataformas de cara al cliente. El código de estos proyectos es propiedad de las empresas donde trabajé y no es público; este repositorio documenta el problema y el impacto de cada uno, sin detallar arquitectura interna ni qué tecnología se usó en qué sistema, por razones de confidencialidad y seguridad.
+A lo largo de mi carrera he liderado el diseño e integración de sistemas críticos de negocio: distribución logística, facturación electrónica, integración de ERP corporativo, plataformas de cara al cliente y herramientas para agentes de IA. El código de estos proyectos empresariales no es público; este repositorio documenta problemas, decisiones de ingeniería y resultados sin publicar código propietario, configuraciones internas ni información sensible.
 
 ## Casos de estudio
 
 - **[LogiX: evolución de una plataforma crítica de distribución logística](./case-study-logix.md)** — reconstrucción bajo restricciones, ownership prolongado en producción, evolución hacia despliegues distribuidos, y retrospectiva sobre las consecuencias de las decisiones iniciales.
+- **[MCP: herramientas seguras para agentes sobre sistemas empresariales](./case-study-mcp.md)** — backend TypeScript/Node.js, integración de tres sistemas, control de acceso y diagnóstico operativo asistido por agentes.
 
 ## Resumen
 
 | Proyecto | Problema | Rol | Escala |
 |---|---|---|---|
 | LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
+| MCP interno (herramientas para agentes) | Consultas de soporte fragmentadas entre sistemas empresariales | Diseño, desarrollo y despliegue | 3 sistemas integrados; uso interno por el equipo |
 | Facturación electrónica | Migración de envío por lotes a tiempo real bajo exigencia normativa | Responsable técnico | Red de puntos de venta |
 | Integración ERP | Datos inconsistentes entre sistemas internos | Diseño y desarrollo | 4 sistemas internos |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
@@ -33,6 +35,18 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 **Resultado:** LogiX soporta hoy procesos de distribución en 3 centros de distribución y 24 tiendas, en producción y bajo evolución continua. En la primera entrega, la importación de datos pasó de unos cinco minutos a unos tres segundos y el despacho promedio por unidad de carga, de unos tres minutos a unos diez segundos. Son resultados históricos; posteriormente fue necesario reducir la concurrencia hacia el ERP.
 
 📄 **[Leer el caso de estudio completo](./case-study-logix.md)** — restricciones, alternativas evaluadas, decisiones de ingeniería, límites actuales y qué habría hecho diferente.
+
+---
+
+## MCP interno — Herramientas para agentes de IA y consulta multi-sistema
+
+**El problema:** diagnosticar incidencias operativas exigía consultar manualmente varias aplicaciones y bases de datos, reconstruir las relaciones entre sus registros y conocer de antemano el orden correcto de las verificaciones. El proceso dependía del conocimiento de quien atendía cada solicitud.
+
+**Lo que hice:** diseñé y desplegué un servidor MCP (Model Context Protocol) en TypeScript/Node.js, con transporte Streamable HTTP y despliegue en Docker. Expuse herramientas de consulta que permiten a agentes compatibles correlacionar información de tres sistemas empresariales. Separé el acceso del agente del acceso a los datos: cada fuente PostgreSQL utiliza credenciales propias de solo lectura y permisos limitados a los campos autorizados. Incorporé autenticación para los clientes y validación de esquemas con Zod.
+
+**Resultado:** el servidor está desplegado y se utiliza internamente por integrantes del equipo desde distintos clientes compatibles con MCP. En tickets reales, los agentes conectados han reconstruido prerrequisitos de configuración y acceso, detectado cuentas existentes y distinguido inconsistencias de identidad o información insuficiente antes de proponer un diagnóstico. La versión actual solo permite consultas; no ejecuta cambios en los sistemas de negocio.
+
+📄 **[Leer el caso de estudio completo](./case-study-mcp.md)** — diseño de herramientas, límites de autorización, diagnósticos validados y evolución prevista.
 
 ---
 
@@ -68,9 +82,9 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ## Tecnologías
 
-Estas son las tecnologías en las que me he apoyado para resolver los problemas descritos. No detallo cuál corresponde a cada sistema, por razones de confidencialidad.
+Estas son tecnologías que he utilizado en los proyectos descritos. Solo comparto detalles técnicos cuya publicación no compromete información interna.
 
-Python · Django · Django REST Framework · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · APIs REST / Web Services (JSON, HTTP/S) · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
+Python · Django · Django REST Framework · Node.js · Nuxt (SSR) · JavaScript · TypeScript · Vue.js · React · Bootstrap · Tailwind CSS · PostgreSQL · SQL Server · PL/pgSQL · PL/Python · Prisma ORM · MCP (Model Context Protocol) · Streamable HTTP · Zod · APIs REST / Web Services (JSON, HTTP/S) · Docker · n8n · Linux (Ubuntu Server) · Nginx · Apache · Git
 
 ---
 
