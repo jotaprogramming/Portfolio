@@ -105,7 +105,7 @@ Agrupo las tecnologías por el tipo de trabajo realizado; no todas representan e
 - **Integración y automatización:** APIs REST · JSON/HTTP · servicios web · MCP (Model Context Protocol) · Streamable HTTP · Zod · Siesa ERP · Connekta · Siesa Integrador · n8n.
 - **Infraestructura y observabilidad:** Docker · Linux (Ubuntu Server) · Nginx · Apache · Gunicorn · Grafana · Uptime Kuma (configuración de monitores) · Git.
 
-Mi experiencia con Node.js en producción se concentra en Nuxt y en el backend del MCP; mi trabajo con Connekta y Siesa Integrador es de configuración e integración, no de desarrollo de sus servicios SOAP.
+Mi experiencia con Node.js en producción se concentra en Nuxt y en el backend del MCP.
 
 ---
 
