@@ -83,7 +83,7 @@ Desarrollé funciones y lógica en **PL/pgSQL** para reconstruir los valores que
 
 La implementación incorporó tratamiento diferenciado de transacciones y un mecanismo iterativo de recálculo para conciliar importes cuando los valores iniciales no cuadraban, atendiendo las peculiaridades observadas en los registros y el redondeo.
 
-La decisión de ingeniería fue **calcular una representación coherente para el documento sin reescribir los registros originales del punto de venta**.
+> **Decisión de ingeniería:** calcular una representación fiscal coherente para el documento **sin reescribir los registros originales del punto de venta**.
 
 Eso tenía dos ventajas: conservaba el dato de origen para auditoría y evitaba introducir una nueva dependencia de escritura sobre un sistema legado que no estaba bajo el mismo control de desarrollo.
 
@@ -111,17 +111,19 @@ Es importante ser preciso:
 
 No implementé una integración directa con la DIAN mediante SOAP/XML ni desarrollé el mecanismo de generación del CUFE. Tampoco atribuyo al proyecto un tiempo promedio o un percentil de latencia que no se haya medido: los cinco segundos representan el **objetivo operacional de diseño**.
 
-El esquema siguiente es lógico, no una descripción de servidores o despliegues:
+### Flujo conceptual del documento
 
 ```mermaid
 flowchart TD
-    A["Punto de venta: datos de la transacción"] --> B["Reconstrucción y validación de valores fiscales"]
-    B --> C["Preparación del documento mediante la integración"]
-    C --> D["Conexus: proveedor tecnológico"]
-    D --> E["DIAN: comunicación gestionada por Conexus"]
-    D --> F["Respuesta: CUFE y QR"]
-    F --> G["Adaptación al circuito heredado de impresión"]
+    A["POS<br/>Datos de la venta"] --> B["Reconstrucción fiscal<br/>PL/pgSQL"]
+    B --> C["Integración con Conexus<br/>Documento JSON"]
+    C --> D["Conexus<br/>Proveedor tecnológico"]
+    D --> E["DIAN<br/>Comunicación a cargo de Conexus"]
+    D --> F["Respuesta<br/>CUFE y QR"]
+    F --> G["Impresión<br/>Adaptación heredada"]
 ```
+
+*Flujo lógico; no corresponde a una topología real de servidores o redes.*
 
 ---
 
@@ -180,15 +182,11 @@ No atribuyo al proyecto cifras no medidas de reducción de rechazos, porcentajes
 
 ## Restricciones, límites y retrospectiva
 
-**El POS era una fuente heredada.** No podía asumir que sus campos constituyeran por sí solos el documento fiscal completo ni alterar libremente el sistema de origen. Construir una representación consistente en la capa de integración resolvía una necesidad real, pero añadía lógica que debía mantenerse cuando cambiaban los patrones de operación.
+**Separación de responsabilidades.** Reconstruir una representación fiscal coherente sin modificar el POS resolvió la necesidad inmediata, pero añadió lógica de transformación que debía mantenerse ante nuevos patrones de origen. Corregir la integración tampoco equivalía a corregir el sistema que entregaba los datos.
 
-**El tiempo operativo estaba condicionado por un tercero.** El límite de cinco segundos era un requisito importante, pero el comportamiento extremo de un servicio remoto no está bajo control del sistema que lo consume. Un diseño robusto requiere reconocer esa dependencia y distinguir objetivos de tiempos de mediciones verificadas.
+**Dependencias y restricciones.** El objetivo de cinco segundos dependía también del servicio remoto. La integración terminaba cuando el QR podía incorporarse al circuito real de impresión, no cuando el proveedor devolvía su respuesta.
 
-**Las reglas fiscales exigían análisis de casos.** No se trataba de utilizar una única fórmula para todos los documentos. Cantidades, devoluciones, notas, descuentos y redondeos podían tener distintas representaciones según el origen y el tipo de transacción.
-
-**La impresión era parte de la integración.** Obtener un QR válido de un proveedor tecnológico no bastaba si el circuito de caja no podía mostrarlo. Integrar sistemas implica también resolver las fronteras de formato y capacidades de los componentes heredados.
-
-**No todo problema debía arreglarse en la misma capa.** Cuando un dato incorrecto nacía en el POS, la integración podía necesitar tratamiento para atender la operación, pero esa adaptación no convertía el comportamiento original en correcto.
+**Diversidad de documentos.** Ventas, devoluciones, notas, descuentos y redondeos requerían interpretar los importes según la operación, en lugar de aplicar una fórmula única.
 
 ### Qué reconsideraría hoy
 
@@ -205,3 +203,7 @@ Este proyecto me obligó a resolver un problema que suele quedar oculto detrás 
 La parte más valiosa fue combinar diagnóstico de transacciones reales, lógica de datos, integración con un proveedor externo y adaptación de un circuito legado bajo restricciones operativas.
 
 La lección se extendió a proyectos posteriores: antes de corregir una inconsistencia entre sistemas, es necesario determinar qué significa cada dato, dónde se transforma y quién es responsable de cada etapa.
+
+---
+
+[← Volver al portafolio](./README.md)
