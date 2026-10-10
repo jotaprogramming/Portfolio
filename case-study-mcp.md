@@ -47,11 +47,11 @@ La ampliación introdujo un segundo mecanismo de integración, sin cambiar la in
 ### Vista conceptual de la integración
 
 ```mermaid
-flowchart TD
-    A["Cliente o agente MCP"] --> B["Servidor MCP<br/>TypeScript / Node.js"]
+flowchart TB
+    A["Clientes MCP"] --> B["Servidor MCP<br/>TypeScript / Node.js"]
     B --> C["Herramientas de consulta"]
-    C --> D["PostgreSQL<br/>Tres sistemas / solo lectura"]
-    C --> E["HTTP GET<br/>Gestión actual de activos / lectura"]
+    C --> D["PostgreSQL<br/>Tres sistemas / lectura"]
+    C --> E["HTTP GET<br/>Activos / lectura"]
 ```
 
 *Diagrama lógico; no representa direcciones, topología o configuración de producción.*
