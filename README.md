@@ -5,14 +5,14 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 ## Casos de estudio
 
 - **[LogiX: evolución de una plataforma crítica de distribución logística](./case-study-logix.md)** — reconstrucción bajo restricciones, ownership prolongado en producción, evolución hacia despliegues distribuidos, y retrospectiva sobre las consecuencias de las decisiones iniciales.
-- **[MCP: herramientas seguras para agentes sobre sistemas empresariales](./case-study-mcp.md)** — backend TypeScript/Node.js, integración de tres sistemas, control de acceso y diagnóstico operativo asistido por agentes.
+- **[MCP: herramientas seguras para agentes sobre sistemas empresariales](./case-study-mcp.md)** — backend TypeScript/Node.js, integración de cuatro sistemas mediante PostgreSQL y HTTP, control de acceso, diagnóstico operativo y trazabilidad de activos fijos.
 
 ## Resumen
 
 | Proyecto | Problema | Rol | Escala |
 |---|---|---|---|
 | LogiX (distribución logística) | Sistema heredado que bloqueaba la operación, y su posterior crecimiento más allá del alcance original | Líder de proyecto y ownership continuo | 3 centros + 24 tiendas |
-| MCP interno (herramientas para agentes) | Consultas de soporte fragmentadas entre sistemas empresariales | Diseño, desarrollo y despliegue | 3 sistemas integrados; uso interno por el equipo |
+| MCP interno (herramientas para agentes) | Consultas de soporte y trazabilidad de activos fragmentadas entre aplicaciones | Diseño, desarrollo y despliegue | 4 sistemas integrados; uso interno por el equipo |
 | Facturación electrónica | Migración de envío por lotes a tiempo real bajo exigencia normativa | Responsable técnico | Red de puntos de venta |
 | Integración ERP | Datos inconsistentes entre sistemas internos | Diseño y desarrollo | 4 sistemas internos |
 | Registro de clientes | Fricción y baja calidad de datos en la inscripción | Líder de proyecto | 24 tiendas |
@@ -40,13 +40,13 @@ A lo largo de mi carrera he liderado el diseño e integración de sistemas crít
 
 ## MCP interno — Herramientas para agentes de IA y consulta multi-sistema
 
-**El problema:** diagnosticar incidencias operativas exigía consultar manualmente varias aplicaciones y bases de datos, reconstruir las relaciones entre sus registros y conocer de antemano el orden correcto de las verificaciones. El proceso dependía del conocimiento de quien atendía cada solicitud.
+**El problema:** diagnosticar incidencias operativas exigía consultar distintas aplicaciones y reconstruir relaciones entre sus datos. Después surgió otra necesidad: rastrear activos fijos cuya historia estaba fragmentada entre sistemas históricos y actuales, sin saber de antemano en cuáles había registros.
 
-**Lo que hice:** diseñé y desplegué un servidor MCP (Model Context Protocol) en TypeScript/Node.js, con transporte Streamable HTTP y despliegue en Docker. Expuse herramientas de consulta que permiten a agentes compatibles correlacionar información de tres sistemas empresariales. Separé el acceso del agente del acceso a los datos: cada fuente PostgreSQL utiliza credenciales propias de solo lectura y permisos limitados a los campos autorizados. Incorporé autenticación para los clientes y validación de esquemas con Zod.
+**Lo que hice:** diseñé y desplegué un servidor MCP (Model Context Protocol) en TypeScript/Node.js, con transporte Streamable HTTP, validación de contratos mediante Zod y ejecución en Docker. Actualmente expone herramientas de consulta sobre **cuatro sistemas empresariales**. Los tres sistemas originales se consultan mediante PostgreSQL con usuarios de solo lectura y permisos mínimos; la nueva aplicación de activos se integra mediante HTTP `GET` y un token Bearer con permisos de lectura concedidos en el sistema de origen. Los agentes usan herramientas delimitadas, sin recibir las credenciales de los sistemas.
 
-**Resultado:** el servidor está desplegado y se utiliza internamente por integrantes del equipo desde distintos clientes compatibles con MCP. En tickets reales, los agentes conectados han reconstruido prerrequisitos de configuración y acceso, detectado cuentas existentes y distinguido inconsistencias de identidad o información insuficiente antes de proponer un diagnóstico. La versión actual solo permite consultas; no ejecuta cambios en los sistemas de negocio.
+**Resultado:** el servicio se utiliza internamente por integrantes del equipo desde distintos clientes compatibles con MCP. Además de apoyar incidencias de cuentas, proveedores y citas, ahora permite consultar activos, facturas y traslados históricos. En pruebas con agentes se consultaron movimientos y se correlacionó información entre el histórico y la aplicación vigente, incluyendo casos donde un activo estaba presente en un sistema pero no en el otro. La versión actual es **exclusivamente de consulta**: no modifica ni sincroniza registros, y queda pendiente integrar otra fuente utilizada en la gestión de activos.
 
-📄 **[Leer el caso de estudio completo](./case-study-mcp.md)** — diseño de herramientas, límites de autorización, diagnósticos validados y evolución prevista.
+📄 **[Leer el caso de estudio completo](./case-study-mcp.md)** — decisiones técnicas, controles de acceso y evolución hacia la trazabilidad de activos.
 
 ---
 
