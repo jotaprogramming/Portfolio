@@ -101,9 +101,9 @@ Diseñé las operaciones de sincronización para poder reintentarse sin duplicar
 
 ### Control de concurrencia sobre compromisos de mercancía
 
-Durante el desarrollo identifiqué que el sistema anterior no distinguía entre dos conceptos que el ERP trata por separado al comprometer y despachar mercancía. Cuando una misma requisición se despachaba en cargas parciales, esa falta de distinción hacía que una carga absorbiera las cantidades de otra, dejando registros inconsistentes sin forma de rastrearlos.
+Durante el desarrollo identifiqué que el sistema anterior no distinguía adecuadamente el compromiso de mercancía de su despacho en operaciones parciales. Esa diferencia podía producir inconsistencias entre cargas.
 
-Implementé un mecanismo de compromiso y bloqueo secuencial: se compromete una carga, se bloquean las siguientes mientras se procesa, y si la operación falla se libera el compromiso y se reintenta con la siguiente. Eso eliminó ese tipo de inconsistencia.
+Introduje controles de estado y concurrencia para coordinar esas operaciones y evitar el patrón de inconsistencias detectado, sin depender de verificaciones manuales entre cargas.
 
 ### Modelo de datos e integraciones
 
@@ -133,7 +133,7 @@ LogiX se diseñó y se construyó sobre un supuesto verificado: el ERP aceptaba 
 
 Un día, sin aviso ni despliegue de nuestro lado, la integración empezó a devolver errores de *deadlock* y de documento ya existente, compatibles con una pérdida de tolerancia a las operaciones concurrentes. No hubo cambios en LogiX ese día ni en los anteriores. Sin acceso al código y la configuración internos del ERP, no fue posible verificar la causa exacta del cambio de comportamiento.
 
-Escalamos el caso con el equipo del ERP para recuperar el comportamiento anterior. Su posición fue que no habían modificado nada y que el proceso seguía siendo el mismo. Sin acceso al sistema y sin acuerdo sobre qué había cambiado, no había forma de revertirlo.
+Escalamos el caso con el equipo responsable del ERP. No fue posible confirmar desde nuestro entorno la causa exacta del cambio observado, de modo que la solución debía contemplar el comportamiento que presentaba la integración.
 
 **La única salida era adaptar LogiX.** Tuvimos que reducir la concurrencia contra el ERP y ajustar la operación a una restricción que no existía cuando el sistema fue diseñado, sacrificando parte del rendimiento que se había ganado.
 
@@ -237,7 +237,7 @@ Esto continúa una tendencia del producto: **LogiX ha ido encapsulando progresiv
 
 ## Integraciones externas
 
-Durante la evolución del producto integré además una plataforma B2B externa (CEN) para el intercambio de información logística, incluyendo avisos de despacho, mediante generación y transferencia de archivos por SFTP.
+Durante la evolución del producto incorporé una integración B2B para intercambiar información logística, incluidos avisos de despacho, mediante transferencia de archivos por SFTP.
 
 ---
 
@@ -270,17 +270,17 @@ No es un mecanismo que resuelva por sí solo las fallas del sistema externo: **s
 
 ## Límites actuales y deuda conocida
 
-**Dependencia de la disponibilidad del ERP.** Cuando el ERP no está disponible, LogiX no puede continuar. Es la consecuencia directa del trade-off aceptado al inicio.
+**Dependencia de la disponibilidad del ERP.** La indisponibilidad del sistema externo afecta procesos operativos que necesitan intercambiar información con él; el producto no dispone todavía de una estrategia de sincronización totalmente autónoma.
 
 **Dependencia del comportamiento del ERP.** Más allá de su disponibilidad, LogiX depende de que las reglas del sistema externo no cambien. Ya ocurrió una vez con la tolerancia a operaciones concurrentes, y la adaptación tuvo que hacerse del lado de LogiX y de la operación.
 
-**Transacciones en estado ambiguo.** Cuando el ERP no responde dentro del tiempo de espera definido, LogiX interrumpe la transacción para no detener la operación, pero el ERP puede haberla completado igual. Esos casos requieren verificación y reenvío manual.
+**Transacciones en estado ambiguo.** Una comunicación interrumpida con el ERP no siempre permite determinar si la operación se completó en el sistema externo. Esto exige mecanismos de verificación y reconciliación.
 
-**Concurrencia acoplada al proceso de aplicación.** La concurrencia se ejecuta dentro del propio proceso que atiende a los usuarios, sin una capa que permita ajustar el flujo hacia el destino de forma independiente. Esa rigidez fue precisamente lo que encareció la adaptación cuando el ERP dejó de aceptar operaciones simultáneas.
+**Acoplamiento de la sincronización.** La ejecución de operaciones de integración no quedó aislada mediante un componente independiente con control de flujo configurable. Esta decisión dificultó adaptarse al cambio de comportamiento observado en el ERP.
 
-**Acoplamiento en el modelo de datos.** Una estructura central usa como identificador propio el que asigna el ERP. Cuando LogiX empezó a originar sus propios registros, eso obligó a diseñar estructuras paralelas y a un flujo indirecto en lugar de una estructura unificada.
+**Acoplamiento en el modelo de datos.** La identidad de determinadas entidades quedó ligada a la que asigna el ERP. Cuando LogiX empezó a originar información propia, esa decisión exigió mecanismos adicionales de correspondencia entre ambos sistemas.
 
-**Funcionalidades modeladas y no implementadas.** Diseñé funcionalidades de ajuste y auditoría del proceso de preparación de pedidos que quedaron documentadas pero fuera de alcance por tiempo.
+**Alcance evolutivo.** Algunas funcionalidades adicionales de apoyo operativo se diseñaron, pero no se implementaron debido a las prioridades y al tiempo disponible.
 
 ---
 
@@ -302,7 +302,7 @@ La evidencia acumulada respalda el criterio: las transacciones en estado ambiguo
 
 **Qué haría:** mover las operaciones de sincronización a workers con una cola y control explícito de concurrencia, fuera del proceso que atiende a los usuarios.
 
-**Por qué:** el trabajo que depende de un sistema externo no debería ejecutarse en el mismo espacio que atiende a los usuarios. Hoy la concurrencia vive dentro del proceso de aplicación mediante hilos que hacen llamadas síncronas de larga duración: si el ERP responde lento, el sistema completo se degrada.
+**Por qué:** el trabajo que depende de un sistema externo debería poder regularse sin acoplar su ritmo al procesamiento de solicitudes de usuarios. De ese modo se podría controlar la presión sobre el ERP y aislar mejor sus degradaciones.
 
 Una cola aporta además algo que este caso demostró con claridad: **el nivel de concurrencia hacia un destino externo debería ser un parámetro, no una característica del código.** Cuando el ERP dejó de aceptar operaciones simultáneas, adaptarse significó modificar el comportamiento del sistema. Con control de flujo explícito, habría significado cambiar un valor.
 
@@ -314,7 +314,7 @@ Como nota secundaria: el cuello de botella es de I/O, no de CPU, así que el pro
 
 **Por qué:** la identidad de una entidad pertenece al sistema que la modela, no a la fuente desde la que llegó.
 
-Esta es la decisión cuyo costo he podido medir mejor. Usar el identificador del ERP como clave primaria daba correspondencia directa y simplificó la primera versión. Pero cuando LogiX empezó a originar sus propios registros, no podía asignarles identificadores sin riesgo de colisión, lo que obligó a diseñar estructuras paralelas y a enviar el registro al ERP para después reimportarlo y obtener su identificador. Una estructura unificada habría contenido registros de ambos orígenes sin distinción.
+Esta decisión simplificó inicialmente la correspondencia con el ERP. Su costo apareció cuando LogiX empezó a originar registros propios: hubo que introducir mecanismos adicionales de asociación entre las entidades locales y las externas. Una identidad local independiente habría facilitado esa evolución sin perder la referencia al sistema corporativo.
 
 ### Lo que no cambiaría
 

@@ -159,6 +159,6 @@ Estos resultados son cualitativos. No dispongo de una medición consolidada que 
 
 Este proyecto me enseñó a trabajar con integraciones de distinta naturaleza: unas requieren desarrollo de aplicación, otras configuración de middleware y otras investigación de incidentes entre componentes que pertenecen a responsables diferentes.
 
-La principal habilidad que desarrollé no fue aprender a consumir un servicio particular de un ERP. Fue **reconstruir cómo circula y cambia la información entre sistemas, identificar la responsabilidad de cada frontera y corregir problemas sin perder de vista la operación que dependen de esos datos**.
+La principal habilidad que desarrollé no fue aprender a consumir un servicio particular de un ERP. Fue **reconstruir cómo circula y cambia la información entre sistemas, identificar la responsabilidad de cada frontera y corregir problemas sin perder de vista los procesos que dependen de esos datos**.
 
 Esa experiencia dio contexto a decisiones posteriores en LogiX y al trabajo más reciente de integración de sistemas empresariales con herramientas para agentes.

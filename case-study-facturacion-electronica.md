@@ -131,7 +131,7 @@ Una exigencia adicional fue incluir en la tirilla de venta el código QR y el CU
 
 La integración con Conexus entregaba el **CUFE ya generado** y el **QR codificado en base64**. Mi responsabilidad fue obtener esos datos, preparar la imagen del QR y resolver su publicación para que pudiera utilizarla el sistema que realizaba la impresión.
 
-Como parte del circuito de caja estaba diseñado para imprimir texto y no imágenes de forma directa, adapté la publicación del QR para que el sistema de impresión heredado pudiera incorporarlo a la tirilla sin necesidad de reemplazar ese componente.
+Como el circuito de caja estaba diseñado para imprimir texto y no imágenes de forma directa, adapté la publicación del QR para que el sistema de impresión heredado pudiera incorporarlo a la tirilla sin reemplazar ese componente.
 
 Esto demuestra una clase de problema frecuente en integración empresarial: **el contrato de salida no termina en la respuesta de la API**. La información debe llegar en un formato que pueda utilizar el último sistema del proceso.
 
@@ -159,9 +159,8 @@ En 2025 hubo evolución adicional documentada:
 
 - **Enero:** incorporación del tratamiento de descuento global en la factura electrónica.
 - **Agosto:** incorporación del tratamiento relacionado con ICUI.
-- **Septiembre:** últimas modificaciones registradas en la documentación técnica disponible.
 
-Estas fechas describen la evolución de la integración, no una implementación de nuevas normas ni un resultado regulatorio que pueda deducirse únicamente del historial de cambios.
+Estas mejoras corresponden a nuevos casos tratados en la integración y no implican que haya desarrollado la plataforma de validación del proveedor tecnológico.
 
 ---
 
