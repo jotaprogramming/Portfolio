@@ -115,8 +115,6 @@ La necesidad surgió de un compañero del equipo: para conocer la historia de un
 
 **Reutilización de una integración existente.** La aplicación ya conectada para consultas de citas conserva un módulo de activos fijos que actualmente funciona como histórico. Añadí herramientas para consultar los activos, sus datos de adquisición, facturas y movimientos entre orígenes y destinos. La ampliación aprovechó la conexión existente y no requirió agregar otra fuente empresarial.
 
-**Nueva integración.** Añadí la aplicación vigente de activos mediante un servicio HTTP consultado con `GET` y un token Bearer provisto con permisos de lectura. Esta fuente contiene registros relacionados con activos, mantenimientos, traslados y entregas.
-
 **Pruebas realizadas con agentes:**
 
 - Búsqueda de un activo por un identificador y recuperación de sus datos descriptivos y de adquisición desde el sistema histórico.
@@ -129,12 +127,10 @@ El resultado demostrado es la consulta y **correlación asistida entre las dos f
 
 ## Resultados demostrados
 
-- **Cuatro sistemas empresariales integrados** detrás de una interfaz de herramientas compatible con MCP: tres mediante PostgreSQL y uno mediante HTTP.
-- **Servidor backend en TypeScript/Node.js**, desplegado con Docker y disponible para uso interno.
-- **Uso por otros integrantes del equipo** desde clientes compatibles, no solamente en el entorno de desarrollo original.
-- **Diagnósticos validados con tickets reales:** identificación de cuentas existentes, prerrequisitos faltantes, diferencias de identidad y necesidad de obtener evidencia adicional antes de atribuir causas.
-- **Pruebas de trazabilidad de activos:** consulta de adquisiciones y traslados históricos y correlación con la fuente vigente, incluyendo la identificación de registros presentes en una fuente y ausentes en otra.
-- **Acceso acotado de solo lectura:** cuentas PostgreSQL de permisos mínimos y peticiones HTTP `GET` mediante un token autorizado para lectura.
+- Servidor desplegado y **utilizado por otros integrantes del equipo** desde clientes compatibles con MCP.
+- Diagnósticos validados con incidencias reales: cuentas existentes, prerrequisitos incompletos y discrepancias de identidad o información.
+- Consultas y correlación asistida de activos históricos y actuales, incluidas búsquedas sin correspondencia en una de las fuentes.
+- Capacidades limitadas por las herramientas y la autorización de origen, **sin operaciones de escritura**.
 
 No atribuyo al proyecto cifras de ahorro de tiempo, reducción de tickets ni mejoras de productividad que no se hayan medido. El resultado comprobado es su funcionamiento y utilidad para los escenarios operativos documentados.
 

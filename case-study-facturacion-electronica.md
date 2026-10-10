@@ -180,15 +180,11 @@ No atribuyo al proyecto cifras no medidas de reducción de rechazos, porcentajes
 
 ## Restricciones, límites y retrospectiva
 
-**El POS era una fuente heredada.** No podía asumir que sus campos constituyeran por sí solos el documento fiscal completo ni alterar libremente el sistema de origen. Construir una representación consistente en la capa de integración resolvía una necesidad real, pero añadía lógica que debía mantenerse cuando cambiaban los patrones de operación.
+**Separación de responsabilidades.** Reconstruir una representación fiscal coherente sin modificar el POS resolvió la necesidad inmediata, pero añadió lógica de transformación que debía mantenerse ante nuevos patrones de origen. Corregir la integración tampoco equivalía a corregir el sistema que entregaba los datos.
 
-**El tiempo operativo estaba condicionado por un tercero.** El límite de cinco segundos era un requisito importante, pero el comportamiento extremo de un servicio remoto no está bajo control del sistema que lo consume. Un diseño robusto requiere reconocer esa dependencia y distinguir objetivos de tiempos de mediciones verificadas.
+**Dependencias y restricciones.** El objetivo de cinco segundos dependía también del servicio remoto. La integración terminaba cuando el QR podía incorporarse al circuito real de impresión, no cuando el proveedor devolvía su respuesta.
 
-**Las reglas fiscales exigían análisis de casos.** No se trataba de utilizar una única fórmula para todos los documentos. Cantidades, devoluciones, notas, descuentos y redondeos podían tener distintas representaciones según el origen y el tipo de transacción.
-
-**La impresión era parte de la integración.** Obtener un QR válido de un proveedor tecnológico no bastaba si el circuito de caja no podía mostrarlo. Integrar sistemas implica también resolver las fronteras de formato y capacidades de los componentes heredados.
-
-**No todo problema debía arreglarse en la misma capa.** Cuando un dato incorrecto nacía en el POS, la integración podía necesitar tratamiento para atender la operación, pero esa adaptación no convertía el comportamiento original en correcto.
+**Diversidad de documentos.** Ventas, devoluciones, notas, descuentos y redondeos requerían interpretar los importes según la operación, en lugar de aplicar una fórmula única.
 
 ### Qué reconsideraría hoy
 
