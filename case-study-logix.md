@@ -116,8 +116,7 @@ I deployed the application on Ubuntu Server using Gunicorn and Apache2, as a dir
 
 ## From Project to Product
 
-The first release did not mark the end of the project: I continued to resolve incidents, improve processes, and refactor components with real users. This ongoing effort allowed us to evaluate the initial decisions based on their impact in production.
----
+The first release did not mark the end of the project: I continued to resolve incidents, improve processes, and refactor components with real users. This ongoing effort allowed us to evaluate the initial decisions based on their impact in production
 
 ## When the Behavior of an External Dependency Changes
 
@@ -279,8 +278,7 @@ It is not a mechanism that resolves external system failures on its own: **its p
 
 **Data model coupling.** The identity of certain entities was tied to the one assigned by the ERP. When LogiX began generating its own data, this decision required additional mechanisms for mapping between the two systems.
 
-**Scope of evolution.** Some additional operational support features were designed but not implemented due to priorities and time constraints.
----
+**Scope of evolution.** Some additional operational support features were designed but not implemented due to priorities and time constraints
 
 ## What I Would Have Done Differently
 
@@ -318,8 +316,7 @@ This decision initially simplified the mapping to the ERP. The cost became appar
 
 **Containerization.** It added operational complexity, but it now facilitates the isolation and management of multiple instances. Portability was another goal: to simplify a potential migration to dedicated infrastructure, which has not yet been carried out.
 
-**The monolith.** With a team of two part-time people and under operational pressure, a monolith built on familiar technology was what made it possible to deliver and maintain the system. Subsequent growth was addressed not by rewriting the code, but by changing how it is deployed.
----
+**The monolith.** With a team of two part-time people and under operational pressure, a monolith built on familiar technology was what made it possible to deliver and maintain the system. Subsequent growth was addressed not by rewriting the code, but by changing how it is deployed
 
 ## Reflection
 
