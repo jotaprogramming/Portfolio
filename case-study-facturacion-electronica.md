@@ -1,208 +1,208 @@
-# Facturación electrónica en tiempo real: reconstrucción fiscal e integración con sistemas heredados
+# Real-Time Electronic Invoicing: Tax Reconstruction and Integration with Legacy Systems
 
-> Caso de estudio de una integración empresarial heredada que asumí y evolucioné entre 2024 y 2025. Describo el problema de ingeniería, las decisiones tomadas y sus límites. No incluyo código de producción, consultas SQL completas, fórmulas internas, datos de facturas identificables, direcciones de servicios, credenciales ni topología de infraestructura.
+> Case study of a legacy enterprise integration that I took on and developed between 2024 and 2025. I describe the engineering challenge, the decisions made, and their limitations. I do not include production code, complete SQL queries, internal formulas, identifiable invoice data, service addresses, credentials, or infrastructure topology.
 
 ---
 
-## En breve
+## Summary
 
-| Aspecto | Contexto |
+| Aspect | Context |
 |---|---|
-| **Rol** | Responsabilidad técnica sobre una integración recibida incompleta; diagnóstico, implementación y mantenimiento evolutivo |
-| **Problema** | Adaptar facturación por lotes a procesamiento en tiempo real con información fiscal incompleta e inconsistente en el POS |
-| **Stack relevante** | PostgreSQL, PL/pgSQL, Python, servicios web, JSON, XML y componentes heredados de impresión |
-| **Proveedor tecnológico** | Conexus: recepción y validación por el proveedor; comunicación directa con la DIAN a cargo de Conexus |
-| **Restricción operacional** | Objetivo de cinco segundos por factura para no perjudicar el servicio en caja |
-| **Periodo** | Trabajo principal en 2024, con correcciones y evolución documentadas hasta septiembre de 2025 |
+| **Role** | Technical responsibility for an integration received in an incomplete state; diagnosis, implementation, and ongoing maintenance |
+| **Problem** | Adapting batch billing to real-time processing with incomplete and inconsistent tax information at the POS |
+| **Relevant Stack** | PostgreSQL, PL/pgSQL, Python, web services, JSON, XML, and legacy printing components |
+| **Technology Provider** | Conexus: reception and validation by the provider; direct communication with the DIAN handled by Conexus |
+| **Operational Constraint** | Target of five seconds per invoice to avoid disrupting checkout service |
+| **Timeframe** | Main work in 2024, with documented corrections and updates through September 2025 |
 
-Este caso es distinto de la integración **POS–Siesa**, que envía información comercial al ERP y se documenta en el [caso de Siesa](./case-study-siesa.md). Aquí el objetivo era preparar los datos fiscales, procesarlos mediante un proveedor tecnológico y adaptar la salida a las necesidades de facturación electrónica.
-
----
-
-## Contexto: de procesos por lotes a procesamiento en tiempo real
-
-Cuando recibí la integración, entre abril y mayo de 2024, el proyecto ya existía, pero estaba incompleto. El flujo anterior operaba mediante envíos por lotes y debía adaptarse a los requisitos de procesamiento en tiempo real vigentes para la operación.
-
-El problema era doble:
-
-1. La factura debía procesarse mientras la venta aún se estaba atendiendo, sin convertir una operación de caja en una espera prolongada.
-2. El punto de venta no conservaba directamente todos los importes y discriminaciones fiscales que necesitaba la integración con el proveedor tecnológico.
-
-La obligación de entregar datos coherentes no desaparecía porque el POS fuera heredado. Había que reconstruirlos sin reescribir inmediatamente ese sistema y sin perder la trazabilidad de la transacción original.
-
-Recibí la responsabilidad técnica de este trabajo sin un proceso de transferencia formal. Antes de implementar cambios generales fue necesario estudiar las salidas de los sistemas, entender cómo se representaban las operaciones y reproducir los errores.
+This case differs from the **POS–Siesa** integration, which sends commercial information to the ERP and is documented in the [Siesa case study](./case-study-siesa.md). Here, the objective was to prepare the tax data, process it through a technology provider, and adapt the output to the requirements of electronic invoicing.
 
 ---
 
-## 1. El problema de los datos de origen
+## Context: From Batch Processing to Real-Time Processing
 
-### Datos insuficientes para emitir el documento
+When I took over the integration, between April and May 2024, the project already existed but was incomplete. The previous workflow operated using batch processing and needed to be adapted to the real-time processing requirements in effect for the operation.
 
-Los registros del POS contenían información como producto, cantidad, precio, descuentos y porcentaje de impuesto, pero no todos los valores fiscales consolidados que debía transmitir la integración.
+The problem was twofold:
 
-Había que derivar importes y componentes tributarios a partir de registros que habían sido diseñados para otra necesidad: operar la venta, no necesariamente representar todos los elementos del documento electrónico.
+1. The invoice had to be processed while the sale was still being processed, without turning a checkout transaction into a prolonged wait.
+2. The point-of-sale system did not directly store all the amounts and tax breakdowns required for integration with the technology provider.
 
-### Convenciones diferentes para ventas y devoluciones
+The obligation to provide consistent data did not disappear simply because the POS system was legacy. We had to reconstruct the data without immediately rewriting that system and without losing the traceability of the original transaction.
 
-Los problemas no eran idénticos entre operaciones.
-
-En algunas devoluciones parciales de productos vendidos por peso, el ajuste podía quedar representado como una variación negativa del precio mientras la cantidad seguía siendo positiva. En otros productos, las cantidades negativas y los importes seguían convenciones distintas. Las notas y documentos de reversión añadían más posibilidades de cambio de signos.
-
-Esto hacía peligroso interpretar el valor almacenado de cada columna de forma aislada. El significado dependía del **tipo de transacción** y de cómo el POS había registrado sus movimientos.
-
-### Descuentos y redondeos
-
-También aparecían discrepancias entre lo que el POS mostraba durante la venta y los datos finalmente almacenados, así como diferencias de decimales en impuestos y descuentos.
-
-Un dato aparentemente pequeño podía provocar una diferencia en el total fiscal del documento. La dificultad no era simplemente formatear un JSON: era determinar qué importes representaban correctamente la operación comercial y cómo reconciliar los cálculos sin ocultar errores de origen.
-
-Por confidencialidad no reproduzco combinaciones exactas de reglas comerciales, fórmulas internas ni registros de transacciones.
+I was assigned technical responsibility for this work without a formal handover process. Before implementing general changes, it was necessary to study the system outputs, understand how transactions were represented, and reproduce the errors.
 
 ---
 
-## 2. Diagnóstico: de casos aislados a patrones reutilizables
+## 1. The Problem with Source Data
 
-Antes de generalizar una corrección recopilé y analicé **más de veinte facturas reales con patrones distintos de inconsistencia**.
+### Insufficient Data to Issue the Document
 
-El trabajo consistió en reconstruir los importes, comparar las salidas de los sistemas y clasificar diferencias relacionadas con:
+The POS records contained information such as product, quantity, price, discounts, and tax rate, but not all the consolidated tax values that the integration was required to transmit.
 
-- Convenciones de cantidad e importe según el tipo de operación.
-- Descuentos y distribuciones de valores que no coincidían entre representación y almacenamiento.
-- Impuestos y diferencias introducidas por redondeo.
-- Reversiones, devoluciones y notas asociadas a documentos previos.
+Tax amounts and components had to be derived from records that had been designed for a different purpose: processing the sale, not necessarily representing all elements of the electronic document.
 
-El propósito no era corregir manualmente cada factura para siempre. Era convertir esos casos en criterios de cálculo reproducibles y ampliar el tratamiento de nuevas situaciones cuando aparecieran.
+### Different Conventions for Sales and Returns
 
-**Lección:** cuando un sistema de origen no garantiza una representación fiscal uniforme, la integración necesita comprender el dominio y validar sus supuestos; un mapeo directo de campos es insuficiente.
+The problems were not identical across transactions.
 
----
+In some partial returns of products sold by weight, the adjustment could be represented as a negative price variation while the quantity remained positive. For other products, negative quantities and amounts followed different conventions. Credit memos and reversal documents added further possibilities for sign changes.
 
-## 3. Recálculo fiscal con PL/pgSQL sin alterar el origen
+This made it risky to interpret the stored value of each column in isolation. The meaning depended on the **type of transaction** and how the POS had recorded its movements.
 
-Desarrollé funciones y lógica en **PL/pgSQL** para reconstruir los valores que requería la integración a partir de la información disponible.
+### Discounts and Rounding
 
-La implementación incorporó tratamiento diferenciado de transacciones y un mecanismo iterativo de recálculo para conciliar importes cuando los valores iniciales no cuadraban, atendiendo las peculiaridades observadas en los registros y el redondeo.
+There were also discrepancies between what the POS displayed during the sale and the data ultimately stored, as well as differences in decimal places for taxes and discounts.
 
-> **Decisión de ingeniería:** calcular una representación fiscal coherente para el documento **sin reescribir los registros originales del punto de venta**.
+A seemingly minor detail could cause a difference in the document’s tax total. The challenge was not simply formatting a JSON file; it was determining which amounts accurately represented the business transaction and how to reconcile the calculations without masking underlying errors.
 
-Eso tenía dos ventajas: conservaba el dato de origen para auditoría y evitaba introducir una nueva dependencia de escritura sobre un sistema legado que no estaba bajo el mismo control de desarrollo.
-
-Al mismo tiempo, mantenía una limitación importante: el cálculo no corregía el comportamiento del POS que generó originalmente una inconsistencia. La integración debía seguir distinguiendo entre errores de origen y errores de transformación.
-
-No publico consultas SQL, condiciones exactas de reconstrucción, algoritmos de ajuste ni reglas de negocio propietarias.
+For confidentiality reasons, I am not reproducing exact combinations of business rules, internal formulas, or transaction records.
 
 ---
 
-## 4. Flujo en tiempo real e integración con Conexus
+## 2. Diagnosis: From Isolated Cases to Reusable Patterns
 
-El siguiente paso fue adaptar un esquema de envíos por lotes a un proceso en el que el documento se atendiera durante el flujo de venta.
+Before generalizing a correction, I collected and analyzed **more than twenty actual invoices with different patterns of inconsistency**.
 
-El límite operativo planteado era de **cinco segundos por factura**. Eso obligó a pensar en el costo de calcular los valores, construir el documento y comunicarse con un sistema externo sin deteriorar la atención en caja.
+The task involved reconstructing the amounts, comparing the system outputs, and classifying discrepancies related to:
 
-La integración combinó lógica SQL en los datos de origen con componentes en Python que consolidaban la información, construían el mensaje JSON y consumían el webservice de **Conexus**.
+- Conventions for quantities and amounts based on the type of transaction.
+- Discounts and value distributions that did not match between display and storage.
+- Taxes and differences caused by rounding.
+- Reversals, refunds, and notes associated with previous documents.
 
-### Frontera de responsabilidades
+The goal was not to manually correct each invoice once and for all. It was to convert these cases into reproducible calculation criteria and expand the handling of new situations as they arose.
 
-Es importante ser preciso:
+**Lesson:** When a source system does not guarantee uniform tax representation, the integration must understand the domain and validate its assumptions; a direct field mapping is insufficient.
 
-- **Trabajo propio:** interpretación y reconstrucción de los datos fiscales, integración con los servicios de Conexus, procesamiento de respuestas y adaptación de los resultados al flujo de caja.
-- **Conexus:** proveedor tecnológico que realiza la comunicación directa con la DIAN y proporciona los resultados de validación y los elementos asociados al documento.
-- **Sistemas heredados:** punto de venta y mecanismo de impresión, con capacidades y restricciones preexistentes.
+---
 
-No implementé una integración directa con la DIAN mediante SOAP/XML ni desarrollé el mecanismo de generación del CUFE. Tampoco atribuyo al proyecto un tiempo promedio o un percentil de latencia que no se haya medido: los cinco segundos representan el **objetivo operacional de diseño**.
+## 3. Tax Recalculation with PL/pgSQL Without Altering the Source
 
-### Flujo conceptual del documento
+I developed functions and logic in **PL/pgSQL** to reconstruct the values required for integration based on the available information.
+
+The implementation incorporated differentiated transaction handling and an iterative recalculation mechanism to reconcile amounts when the initial values did not balance, taking into account the peculiarities observed in the records and rounding.
+
+> **Engineering decision:** Calculate a consistent tax representation for the document **without rewriting the original point-of-sale records**.
+
+This had two advantages: it preserved the source data for auditing purposes and avoided introducing a new write dependency on a legacy system that was not under the same development control.
+
+At the same time, it maintained a significant limitation: the calculation did not correct the behavior of the POS that originally caused the inconsistency. The integration had to continue distinguishing between source errors and transformation errors.
+
+I do not publish SQL queries, exact reconstruction conditions, adjustment algorithms, or proprietary business rules.
+
+---
+
+## 4. Real-Time Workflow and Integration with Conexus
+
+The next step was to adapt a batch-processing system to a workflow in which the document would be handled during the sales process.
+
+The operational limit set was **five seconds per invoice**. This required us to consider the cost of calculating values, building the document, and communicating with an external system without compromising checkout efficiency.
+
+The integration combined SQL logic on the source data with Python components that consolidated the information, built the JSON message, and called the **Conexus** web service.
+
+### Boundaries of Responsibility
+
+It is important to be precise:
+
+- **Our work:** interpretation and reconstruction of tax data, integration with Conexus services, processing of responses, and adaptation of the results to the checkout process.
+- **Conexus:** technology provider that communicates directly with the DIAN and provides validation results and elements associated with the document.
+- **Legacy systems:** point-of-sale and printing mechanisms, with pre-existing capabilities and limitations.
+
+I did not implement a direct integration with the DIAN via SOAP/XML, nor did I develop the CUFE generation mechanism. Nor do I attribute to the project an average time or latency percentile that has not been measured: the five seconds represent the **operational design goal**.
+
+### Document Conceptual Flow
 
 ```mermaid
 flowchart TB
-    A["POS<br/>Datos de venta"] --> B["Cálculo fiscal<br/>PL/pgSQL"]
-    B --> C["Documento JSON<br/>Envío a Conexus"]
-    C --> D["Conexus<br/>Comunicación con DIAN"]
-    D --> E["Respuesta<br/>CUFE y QR"]
-    E --> F["Impresión<br/>Sistema heredado"]
+    A[“POS<br/>Sales Data”] --> B[“Tax Calculation<br/>PL/pgSQL”]
+    B --> C[“JSON Document<br/>Send to Conexus”]
+    C --> D[“Conexus<br/>Communication with DIAN”]
+    D --> E[“Response<br/>CUFE and QR”]
+    E --> F[“Printing<br/>Legacy system”]
 ```
 
-*Flujo lógico; no corresponde a una topología real de servidores o redes.*
+*Logical flow; does not correspond to an actual server or network topology.*
 
 ---
 
-## 5. QR y CUFE en un circuito de impresión heredado
+## 5. QR and CUFE in a Legacy Printing System
 
-Una exigencia adicional fue incluir en la tirilla de venta el código QR y el CUFE asociados al documento.
+An additional requirement was to include the QR code and CUFE associated with the document on the sales receipt.
 
-La integración con Conexus entregaba el **CUFE ya generado** y el **QR codificado en base64**. Mi responsabilidad fue obtener esos datos, preparar la imagen del QR y resolver su publicación para que pudiera utilizarla el sistema que realizaba la impresión.
+The integration with Conexus provided the **pre-generated CUFE** and the **base64-encoded QR code**. My responsibility was to retrieve that data, prepare the QR code image, and figure out how to incorporate it so that the printing system could use it.
 
-Como el circuito de caja estaba diseñado para imprimir texto y no imágenes de forma directa, adapté la publicación del QR para que el sistema de impresión heredado pudiera incorporarlo a la tirilla sin reemplazar ese componente.
+Since the POS system was designed to print text directly, not images, I adapted the QR code output so that the legacy printing system could incorporate it into the receipt without replacing that component.
 
-Esto demuestra una clase de problema frecuente en integración empresarial: **el contrato de salida no termina en la respuesta de la API**. La información debe llegar en un formato que pueda utilizar el último sistema del proceso.
-
----
-
-## 6. Tratamiento de devoluciones y notas
-
-Las devoluciones introducían situaciones diferentes de una venta ordinaria.
-
-Para determinadas **devoluciones totales**, aproveché el **XML de la factura ya emitida** por medio del proveedor tecnológico. En lugar de reconstruir todos los cálculos desde los datos del POS, leía y transformaba los valores del documento previamente consolidado para generar la nota correspondiente.
-
-Esta estrategia reconocía que el documento ya emitido contenía información fiscal reconciliada que podía servir de referencia para su reversión completa.
-
-La precisión técnica es importante: **leí y transformé un XML existente; no construí mensajes XML para enviarlos directamente a la DIAN**.
-
-La lógica de devoluciones parciales y otras situaciones requería un tratamiento distinto. No sería correcto presentar el aprovechamiento del XML de una devolución total como solución universal para todas las notas.
+This illustrates a common problem in enterprise integration: **the output contract does not end with the API response**. The information must be delivered in a format that the final system in the process can use.
 
 ---
 
-## 7. Evolución posterior en producción
+## 6. Handling Returns and Credit Memos
 
-La adaptación inicial no agotó el trabajo. Durante 2024 continué atendiendo errores de origen y transformaciones fiscales que aparecían con casos reales.
+Returns presented situations that differed from ordinary sales.
 
-En 2025 hubo evolución adicional documentada:
+For certain **full returns**, I leveraged the **XML from the invoice already issued** through the technology provider. Instead of reconstructing all the calculations from the POS data, I read and transformed the values from the previously consolidated document to generate the corresponding credit memo.
 
-- **Enero:** incorporación del tratamiento de descuento global en la factura electrónica.
-- **Agosto:** incorporación del tratamiento relacionado con ICUI.
+This strategy recognized that the document already issued contained reconciled tax information that could serve as a reference for its complete reversal.
 
-Estas mejoras corresponden a nuevos casos tratados en la integración y no implican que haya desarrollado la plataforma de validación del proveedor tecnológico.
+Technical precision is important: **I read and transformed an existing XML file; I did not construct XML messages to send directly to the DIAN**.
 
----
-
-## Resultados verificables
-
-- Evolución de una integración heredada de envíos por lotes hacia un flujo de procesamiento en tiempo real mediante Conexus.
-- Implementación de un mecanismo de reconstrucción y conciliación de importes fiscales con **PL/pgSQL**, sin alterar los registros originales del POS.
-- Investigación de **más de veinte casos** de facturación para identificar patrones repetibles de inconsistencias.
-- Consumo de servicios del proveedor tecnológico con tratamiento de respuestas que incluyen CUFE y QR en base64.
-- Adaptación del QR al circuito de impresión heredado.
-- Resolución de determinados escenarios de devoluciones totales mediante lectura y transformación de XML ya emitidos.
-- Mantenimiento evolutivo y cobertura de nuevos casos relacionados con descuentos durante 2025.
-
-No atribuyo al proyecto cifras no medidas de reducción de rechazos, porcentajes de éxito de validación, ahorro económico ni cumplimiento de una latencia estadística en todas las facturas.
+The logic behind partial returns and other situations required a different approach. It would not be correct to present the use of XML from a full return as a universal solution for all credit memos.
 
 ---
 
-## Restricciones, límites y retrospectiva
+## 7. Subsequent Developments in Production
 
-**Separación de responsabilidades.** Reconstruir una representación fiscal coherente sin modificar el POS resolvió la necesidad inmediata, pero añadió lógica de transformación que debía mantenerse ante nuevos patrones de origen. Corregir la integración tampoco equivalía a corregir el sistema que entregaba los datos.
+The initial adaptation was not the end of the work. Throughout 2024, I continued to address source errors and tax adjustments that arose in real-world cases.
 
-**Dependencias y restricciones.** El objetivo de cinco segundos dependía también del servicio remoto. La integración terminaba cuando el QR podía incorporarse al circuito real de impresión, no cuando el proveedor devolvía su respuesta.
+In 2025, additional developments were documented:
 
-**Diversidad de documentos.** Ventas, devoluciones, notas, descuentos y redondeos requerían interpretar los importes según la operación, en lugar de aplicar una fórmula única.
+- **January:** Implementation of the global discount treatment in electronic invoicing.
+- **August:** Implementation of the treatment related to ICUI.
 
-### Qué reconsideraría hoy
-
-Preferiría una separación más explícita entre normalización de datos fiscales, validaciones, comunicación con el proveedor y adaptación de la respuesta a la caja. Esto facilitaría probar cada etapa con casos representativos y observar con mayor claridad dónde aparece una inconsistencia o una degradación.
-
-Esa consideración es una **retrospectiva**, no una afirmación de que se haya implementado una arquitectura nueva con esas capas totalmente desacopladas.
+These improvements correspond to new cases addressed in the integration and do not imply that I developed the technology provider’s validation platform.
 
 ---
 
-## Reflexión de ingeniería
+## Verifiable Results
 
-Este proyecto me obligó a resolver un problema que suele quedar oculto detrás de la expresión «integrar una API»: **obtener datos correctos cuando el sistema de origen no los representa de la forma que exige el destino**.
+- Transition from a legacy batch-processing integration to a real-time processing workflow using Conexus.
+- Implementation of a mechanism for reconstructing and reconciling tax amounts using **PL/pgSQL**, without altering the original POS records.
+- Investigation of **more than twenty cases** of invoicing to identify recurring patterns of inconsistencies.
+- Utilization of the technology provider’s services, including handling responses that contain CUFE and base64-encoded QR codes.
+- Adaptation of the QR code to the legacy printing system.
+- Resolution of specific scenarios involving full refunds by reading and transforming previously issued XML files.
+- Evolutionary maintenance and coverage of new cases related to discounts throughout 2025.
 
-La parte más valiosa fue combinar diagnóstico de transacciones reales, lógica de datos, integración con un proveedor externo y adaptación de un circuito legado bajo restricciones operativas.
-
-La lección se extendió a proyectos posteriores: antes de corregir una inconsistencia entre sistemas, es necesario determinar qué significa cada dato, dónde se transforma y quién es responsable de cada etapa.
+I do not attribute to the project unmeasured figures regarding rejection reduction, validation success rates, cost savings, or compliance with a statistical latency threshold across all invoices.
 
 ---
 
-[← Volver al portafolio](./README.md)
+## Restrictions, Limits, and Retrospective Analysis
+
+**Separation of Responsibilities.** Reconstructing a coherent tax representation without modifying the POS addressed the immediate need, but introduced transformation logic that had to be maintained in the face of new source patterns. Correcting the integration was not the same as correcting the system that provided the data.
+
+**Dependencies and restrictions.** The five-second target also depended on the remote service. The integration was complete when the QR code could be incorporated into the actual printing process, not when the vendor returned its response.
+
+**Diversity of documents.** Sales, returns, credit memos, discounts, and rounding required interpreting the amounts based on the specific transaction, rather than applying a single formula.
+
+### What I would reconsider today
+
+I would prefer a more explicit separation between tax data normalization, validations, communication with the provider, and adapting the response for the cash register. This would make it easier to test each stage with representative cases and observe more clearly where an inconsistency or degradation occurs.
+
+This is a **retrospective** observation, not a claim that a new architecture with those layers fully decoupled has been implemented.
+
+---
+
+## Engineering Reflection
+
+This project forced me to solve a problem that is often hidden behind the phrase “integrating an API”: **obtaining accurate data when the source system does not represent it in the format required by the destination**.
+
+The most valuable part was combining the analysis of real transactions, data logic, integration with an external provider, and adaptation of a legacy system under operational constraints.
+
+This lesson carried over to subsequent projects: before correcting an inconsistency between systems, it is necessary to determine what each piece of data means, where it is transformed, and who is responsible for each stage.
+
+---
+
+[← Back to portfolio](./README.md)
