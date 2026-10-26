@@ -1,161 +1,161 @@
-# MCP interno: herramientas seguras para agentes sobre sistemas empresariales
+# Internal MCP: Secure Agent Tools for Enterprise Systems
 
-> Este caso de estudio describe una implementación productiva de herramientas para agentes basada en Model Context Protocol (MCP). El código, las credenciales y las configuraciones de acceso son internos; aquí documento el problema, las decisiones de ingeniería, los resultados validados y sus límites, sin exponer información sensible.
+> This case study describes a production deployment of agent tools based on the Model Context Protocol (MCP). The code, credentials, and access configurations are internal; here I document the problem, the engineering decisions, the validated results, and their limitations, without disclosing sensitive information.
 
 ---
 
-## Contexto y problema
+## Context and Problem
 
-En una operación empresarial, una incidencia de soporte puede involucrar datos repartidos entre varias aplicaciones. Para determinar por qué un proveedor no podía acceder a un portal, por qué una orden de compra no avanzaba o qué citas estaban registradas, el equipo debía consultar distintos sistemas de forma manual.
+In a business operation, a support incident may involve data spread across multiple applications. To determine why a vendor could not access a portal, why a purchase order was not moving forward, or which appointments were scheduled, the team had to manually check different systems.
 
-No bastaba con encontrar un registro. Había que relacionar entidades y comprender los prerrequisitos entre procesos: la existencia de un tercero no implica que esté configurado como proveedor, que tenga una cuenta habilitada o que exista en los portales asociados.
+Simply finding a record was not enough. It was necessary to link entities and understand the prerequisites between processes: the existence of a third party does not imply that it is configured as a vendor, that it has an active account, or that it exists in the associated portals.
 
-La calidad y velocidad del diagnóstico dependían de conocer **qué consultar, en qué orden y cómo interpretar resultados de diferentes fuentes**. Ese conocimiento operativo no estaba disponible de forma uniforme para todas las personas que atendían las incidencias.
+The quality and speed of the diagnosis depended on knowing **what to check, in what order, and how to interpret results from different sources**. That operational knowledge was not uniformly available to everyone handling the support cases.
 
-## Objetivo
+## Objective
 
-Construir una interfaz uniforme de herramientas que permitiera a agentes de IA consultar y correlacionar información de varios sistemas empresariales, sin proporcionar a esos agentes credenciales directas ni acceso indiscriminado a los sistemas.
+To build a unified tool interface that would allow AI agents to query and correlate information from various enterprise systems, without providing those agents with direct credentials or unrestricted access to the systems.
 
-La meta era apoyar el diagnóstico de soporte con información verificable. **No se trataba de construir un modelo de IA ni un agente autónomo propio**: los clientes compatibles con MCP aportan el razonamiento y la elección de herramientas; el servidor desarrollado por mí define qué consultas están disponibles y bajo qué restricciones.
+The goal was to support troubleshooting with verifiable information. **This was not about building an AI model or a standalone autonomous agent**: MCP-compatible clients provide the reasoning and tool selection; the server I developed defines which queries are available and under what restrictions.
 
-## Alcance y estado
+## Scope and Status
 
-El proyecto comenzó en septiembre de 2026. La base funcional está desplegada y ha sido utilizada internamente por mí y por otros integrantes del equipo.
+The project began in September 2026. The functional foundation is in place and has been used internally by me and other team members.
 
-La implementación actual integra **cuatro sistemas empresariales**:
+The current implementation integrates **four business systems**:
 
-1. Una fuente de información maestra sobre terceros, proveedores y usuarios asociados.
-2. Un portal de autogestión, con información de cuentas y trazabilidad de operaciones de compra.
-3. Una aplicación de citas a proveedores que también conserva un módulo histórico de activos fijos, con facturas de adquisición y traslados.
-4. Una aplicación vigente de gestión de activos, que contiene mantenimientos, traslados, entregas y otros registros operativos, integrada mediante un servicio HTTP.
+1. A master data source for third parties, suppliers, and associated users.
+2. A self-service portal with account information and traceability of purchase transactions.
+3. A supplier appointment scheduling application that also maintains a historical fixed-asset module, including purchase invoices and asset transfers.
+4. A current asset management application containing maintenance records, asset transfers, deliveries, and other operational records, integrated via an HTTP service.
 
-La primera versión integraba las dos primeras fuentes y después se añadió la de citas. En octubre de 2026 amplié las herramientas de esa **misma fuente** para consultar los activos históricos y añadí una **cuarta fuente** a través de HTTP. Habilitar el módulo histórico no supone una integración empresarial adicional por sí misma.
+The first version integrated the first two sources, and the scheduling source was added later. In October 2026, I expanded the tools of that **same source** to query historical assets and added a **fourth source** via HTTP. Enabling the historical module does not in itself require additional enterprise integration.
 
-## Diseño de la solución
+## Solution Design
 
-### Backend e integración
+### Backend and Integration
 
-Desarrollé el servidor en **TypeScript sobre Node.js**, utilizando **MCP** para exponer herramientas de consulta con contratos definidos y **Zod** para validar esquemas. Se publica mediante **Streamable HTTP** y se ejecuta en **Docker** dentro del entorno interno de la empresa.
+I developed the server in **TypeScript on Node.js**, using **MCP** to expose query tools with defined contracts and **Zod** to validate schemas. It is published via **Streamable HTTP** and runs in **Docker** within the company’s internal environment.
 
-El servidor se configuró en distintos clientes compatibles con MCP y en equipos de compañeros. Esta validación permitió comprobar que las herramientas no dependían de un solo cliente ni de una configuración de uso personal.
+The server was configured on various MCP-compatible clients and on colleagues’ computers. This validation confirmed that the tools did not depend on a single client or on a personal configuration.
 
-La ampliación introdujo un segundo mecanismo de integración, sin cambiar la interfaz que consumen los clientes:
+The expansion introduced a second integration mechanism without changing the interface used by clients:
 
-- **PostgreSQL:** cuentas independientes de solo lectura y permisos mínimos para los tres sistemas previamente conectados.
-- **HTTP:** peticiones `GET` autenticadas mediante un token Bearer concedido en la aplicación vigente de activos con permisos de lectura. El token permanece en el lado del servicio; no se entrega a los agentes.
+- **PostgreSQL:** separate read-only accounts with minimal permissions for the three previously connected systems.
+- **HTTP:** `GET` requests authenticated using a Bearer token granted by the active asset application with read permissions. The token remains on the service side; it is not delivered to agents.
 
-### Vista conceptual de la integración
+### Conceptual view of the integration
 
 ```mermaid
 flowchart TB
-    A["Clientes MCP"] --> B["Servidor MCP<br/>TypeScript / Node.js"]
-    B --> C["Herramientas de consulta"]
-    C --> D["PostgreSQL<br/>Tres sistemas / lectura"]
-    C --> E["HTTP GET<br/>Activos / lectura"]
+    A[“MCP Clients”] --> B[“MCP Server<br/>TypeScript / Node.js”]
+    B --> C[“Query Tools”]
+    C --> D[“PostgreSQL<br/>Three systems / read”]
+    C --> E[“HTTP GET<br/>Assets / read”]
 ```
 
-*Diagrama lógico; no representa direcciones, topología o configuración de producción.*
+*Logical diagram; does not represent directions, topology, or production configuration.*
 
-### Seguridad como restricción de diseño
+### Security as a Design Constraint
 
-> **Principio de seguridad:** no entregar a los agentes acceso general a los sistemas empresariales ni credenciales directas.
+> **Security Principle:** Do not grant agents general access to business systems or direct credentials.
 
-Las fuentes PostgreSQL utilizan cuentas independientes con permisos mínimos de lectura y restricciones sobre los datos disponibles. En la integración HTTP, el sistema de origen concedió un token Bearer con permisos de lectura para los endpoints `GET` utilizados. **No son mecanismos de autorización equivalentes:** las restricciones de una cuenta PostgreSQL no deben atribuirse automáticamente a una API HTTP.
+PostgreSQL sources use separate accounts with minimal read permissions and restrictions on the available data. In the HTTP integration, the source system granted a Bearer token with read permissions for the `GET` endpoints used. **These are not equivalent authorization mechanisms:** the restrictions of a PostgreSQL account should not be automatically applied to an HTTP API.
 
-Esto establece dos controles complementarios:
+This establishes two complementary controls:
 
-- **La herramienta:** expone operaciones concretas de consulta en lugar de permitir consultas arbitrarias o modificaciones generales.
-- **La fuente:** aplica la autorización que corresponda a su mecanismo de acceso, ya sea PostgreSQL o HTTP.
+- **The tool:** exposes specific query operations rather than allowing arbitrary queries or general modifications.
+- **The source:** applies the authorization corresponding to its access mechanism, whether PostgreSQL or HTTP.
 
-El servicio exige además autenticación para los clientes autorizados. No se publican tokens, credenciales, direcciones internas ni estructuras de acceso. La autenticación del cliente MCP no demuestra, por sí sola, autorización individual sobre todos los activos; ese alcance debe evaluarse por herramienta y sistema de origen.
+The service also requires authentication for authorized clients. Tokens, credentials, internal addresses, and access structures are not published. MCP client authentication does not, by itself, demonstrate individual authorization over all assets; that scope must be evaluated on a per-tool and per-source-system basis.
 
-Una prueba explícita consistió en pedir credenciales de un usuario: el agente podía obtener el identificador permitido, pero **no la contraseña**, porque ese dato no estaba disponible mediante los permisos concedidos. La recuperación de acceso debía continuar por los canales establecidos del equipo de soporte.
+One explicit test involved requesting a user’s credentials: the agent could obtain the authorized identifier, but **not the password**, because that information was not available under the granted permissions. Access recovery had to proceed through the support team’s established channels.
 
-Este comportamiento es relevante en aplicaciones con agentes: una respuesta generada por un modelo no constituye una política de autorización. El control debe existir en los servicios y fuentes de datos.
+This behavior is relevant in applications with agents: a response generated by a model does not constitute an authorization policy. Control must reside within the services and data sources.
 
-## Casos validados con incidencias reales
+## Cases Validated with Real Incidents
 
-### 1. Verificación de cuentas antes de crear duplicados
+### 1. Account Verification Before Creating Duplicates
 
-Ante solicitudes de creación o recuperación de usuarios, los agentes conectados pudieron verificar si el tercero existía, si tenía configurado su perfil de proveedor y si había cuentas en los sistemas correspondientes.
+When processing requests to create or recover user accounts, connected agents were able to verify whether the third party existed, whether their provider profile was configured, and whether accounts existed in the corresponding systems.
 
-En algunos casos se encontró que la cuenta ya estaba creada y activa. El diagnóstico permitió identificar esa situación **antes de iniciar un alta duplicada**.
+In some cases, it was found that the account had already been created and was active. The diagnostic process made it possible to identify this situation **before initiating a duplicate registration**.
 
-La herramienta no creó ni modificó usuarios: proporcionó información para orientar el procedimiento de soporte.
+The tool did not create or modify users: it provided information to guide the support process.
 
-### 2. Reconstrucción de dependencias entre sistemas
+### 2. Reconstructing Dependencies Between Systems
 
-Un ticket solicitaba acceso para un proveedor que aún no tenía completada su configuración en los distintos portales.
+A support ticket requested access for a vendor whose configuration had not yet been completed across the various portals.
 
-La consulta multi-sistema mostró que el tercero existía como entidad maestra, pero faltaban configuraciones y cuentas necesarias en otras aplicaciones. En lugar de responder solamente «el usuario no existe», el agente pudo ordenar los prerrequisitos: primero la configuración comercial del proveedor y después la creación o habilitación de los accesos que dependen de ella.
+The cross-system query showed that the third party existed as a master entity, but necessary configurations and accounts were missing in other applications. Instead of simply responding, “The user does not exist,” the agent was able to prioritize the prerequisites: first, the vendor’s business configuration, and then the creation or activation of the accesses that depend on it.
 
-**El valor no fue una consulta individual**, sino combinar información de fuentes distintas para reconstruir un flujo operativo que antes dependía del conocimiento implícito del equipo.
+**The value lay not in a single query**, but in combining information from different sources to reconstruct an operational workflow that previously depended on the team’s tacit knowledge.
 
-### 3. Información contradictoria o insuficiente
+### 3. Contradictory or Insufficient Information
 
-Durante una verificación se detectó que un identificador de proveedor no coincidía con el dato proporcionado en la solicitud. En lugar de continuar con una coincidencia parcial, el agente pidió confirmar la identidad.
+During a verification, it was detected that a vendor identifier did not match the information provided in the request. Instead of proceeding with a partial match, the agent asked for confirmation of the identity.
 
-En otra incidencia, el estado de una orden aparecía como pendiente. Ese estado por sí solo no demostraba la causa. Para revisar la trazabilidad, el agente solicitó los identificadores y la referencia temporal necesarios para consultar los registros disponibles.
+In another incident, the status of an order appeared as “pending.” That status alone did not indicate the cause. To review the traceability, the agent requested the identifiers and timestamp necessary to consult the available records.
 
-También hubo solicitudes ambiguas de parametrización. Cuando los datos consultables no permitían inferir con seguridad una regla de negocio, el agente no debía presentar esa regla como existente.
+There were also ambiguous requests for parameterization. When the available data did not allow for the reliable inference of a business rule, the agent should not have presented that rule as existing.
 
-Estos casos muestran por qué **ausencia de datos, configuración incompleta, discrepancia de identidad y fallo de integración** no son diagnósticos equivalentes.
+These cases demonstrate why **lack of data, incomplete configuration, identity discrepancy, and integration failure** are not equivalent diagnoses.
 
-### 4. Consultas operativas sobre citas
+### 4. Operational Queries Regarding Appointments
 
-Tras incorporar la tercera fuente, las herramientas permitieron realizar consultas de citas confirmadas en intervalos horarios y consolidar información operativa relevante, como proveedor, hora, órdenes relacionadas y cantidades registradas.
+After incorporating the third data source, the tools made it possible to query confirmed appointments by time intervals and consolidate relevant operational information, such as provider, time, related orders, and recorded quantities.
 
-También fue posible distinguir registros asociados a distintos portafolios de un mismo proveedor, en lugar de asumir que una coincidencia de nombre implicaba una única entidad válida.
+It was also possible to distinguish records associated with different portfolios of the same provider, rather than assuming that a name match implied a single valid entity.
 
-### 5. Trazabilidad de activos fijos entre aplicaciones históricas y actuales
+### 5. Fixed Asset Traceability Across Legacy and Current Applications
 
-La necesidad surgió de un compañero del equipo: para conocer la historia de un activo fijo tenía que revisar tres aplicaciones, sin saber necesariamente en cuáles existían registros. Esa búsqueda fragmentada dificultaba distinguir la adquisición, los movimientos y las actividades de mantenimiento de un mismo activo.
+The need arose from a teammate: to track the history of a fixed asset, he had to check three different applications, without necessarily knowing which ones contained the relevant records. This fragmented search made it difficult to distinguish between the acquisition, transfers, and maintenance activities for a single asset.
 
-**Reutilización de una integración existente.** La aplicación ya conectada para consultas de citas conserva un módulo de activos fijos que actualmente funciona como histórico. Añadí herramientas para consultar los activos, sus datos de adquisición, facturas y movimientos entre orígenes y destinos. La ampliación aprovechó la conexión existente y no requirió agregar otra fuente empresarial.
+**Reusing an existing integration.** The application already connected for appointment inquiries includes a fixed asset module that currently serves as a historical database. I added tools to view the assets, their acquisition data, invoices, and movements between origin and destination locations. The expansion leveraged the existing connection and did not require adding another business source.
 
-**Pruebas realizadas con agentes:**
+**Tests conducted with agents:**
 
-- Búsqueda de un activo por un identificador y recuperación de sus datos descriptivos y de adquisición desde el sistema histórico.
-- Consulta de sus traslados y presentación ordenada de movimientos con origen, destino y fecha.
-- Consulta de ambas fuentes para relacionar registros del mismo activo o determinar que aparecía en una de ellas y no en la otra.
+- Searching for an asset by identifier and retrieving its descriptive and acquisition data from the historical system.
+- Viewing its transfers and an organized display of movements showing origin, destination, and date.
+- Querying both sources to link records for the same asset or determine which source contained a record that was missing from the other.
 
-Las pruebas mostraron que **un traslado histórico no confirma necesariamente la ubicación o custodia actual**. Asimismo, que una búsqueda no arroje registros en una fuente no significa por sí solo que el activo nunca existió allí.
+The tests showed that **a historical transfer does not necessarily confirm the current location or custody**. Likewise, the fact that a search yields no records in one source does not, in and of itself, mean that the asset never existed there.
 
-El resultado demostrado es la consulta y **correlación asistida entre las dos fuentes de activos ya integradas**. No representa todavía una reconstrucción exhaustiva y automatizada de todo el ciclo de vida, ni incorpora la tercera aplicación que consulta el equipo.
+The demonstrated result is the query and **assisted correlation between the two already-integrated asset sources**. It does not yet represent a comprehensive, automated reconstruction of the entire lifecycle, nor does it incorporate the third application that the team uses.
 
-## Resultados demostrados
+## Demonstrated Results
 
-- Servidor desplegado y **utilizado por otros integrantes del equipo** desde clientes compatibles con MCP.
-- Diagnósticos validados con incidencias reales: cuentas existentes, prerrequisitos incompletos y discrepancias de identidad o información.
-- Consultas y correlación asistida de activos históricos y actuales, incluidas búsquedas sin correspondencia en una de las fuentes.
-- Capacidades limitadas por las herramientas y la autorización de origen, **sin operaciones de escritura**.
+- Server deployed and **used by other team members** from MCP-compatible clients.
+- Diagnostics validated with real incidents: existing accounts, incomplete prerequisites, and discrepancies in identity or information.
+- Queries and assisted correlation of historical and current assets, including searches with no matches in one of the sources.
+- Capabilities limited by the source tools and authorization, **with no write operations**.
 
-No atribuyo al proyecto cifras de ahorro de tiempo, reducción de tickets ni mejoras de productividad que no se hayan medido. El resultado comprobado es su funcionamiento y utilidad para los escenarios operativos documentados.
+I do not attribute any time savings, ticket reductions, or productivity improvements to the project that have not been measured. The verified result is its functionality and usefulness for the documented operational scenarios.
 
-## Límites actuales y evolución prevista
+## Current Limitations and Expected Evolution
 
-**Solo lectura.** El servidor permite consultar información, pero no ejecuta altas, habilitaciones ni actualizaciones de datos empresariales. Las acciones sensibles siguen los procedimientos habituales de soporte.
+**Read-only.** The server allows users to view information but does not perform registrations, activations, or updates to business data. Sensitive actions follow standard support procedures.
 
-**Cobertura delimitada.** Las herramientas sirven para los datos y procesos que exponen sus contratos. No pueden responder de manera fiable preguntas sobre campos o reglas que no estén representados en las fuentes disponibles.
+**Limited coverage.** The tools are designed for the data and processes specified in their contracts. They cannot reliably answer questions about fields or rules that are not represented in the available sources.
 
-**Dependencia de los sistemas de origen.** La calidad del diagnóstico depende de la información que esas aplicaciones registran y permiten consultar. Un agente no debe interpretar información ausente como prueba de una causa concreta.
+**Dependence on source systems.** The quality of the diagnosis depends on the information that those applications record and allow users to view. An agent should not interpret missing information as evidence of a specific cause.
 
-**Tercera fuente de activos pendiente.** Está prevista la evaluación de una integración adicional con la aplicación restante que utiliza el equipo para consultar activos. La correlación actual cubre solo las dos fuentes de activos conectadas.
+**Third asset source pending.** An evaluation is planned for an additional integration with the remaining application that the team uses to query assets. The current correlation covers only the two connected asset sources.
 
-**Sincronización pendiente de análisis.** Se ha planteado permitir que un agente proponga la actualización del sistema vigente a partir de información de los otros sistemas. Antes de habilitar cualquier escritura, sería necesario definir correspondencia de identidades entre fuentes, autoridad de los datos, reglas de reconciliación, controles de permisos, aprobación y auditoría. **No se han implementado acciones de sincronización.**
+**Synchronization pending analysis.** A proposal has been made to allow an agent to suggest updates to the current system based on information from the other systems. Before enabling any write operations, it would be necessary to define identity mappings between sources, data authority, reconciliation rules, and controls for permissions, approval, and auditing. **No synchronization actions have been implemented.**
 
-**Otras operaciones de escritura no implementadas.** Se han considerado herramientas de administración con permisos acotados, por ejemplo la habilitación de usuarios. También requerirían controles específicos antes de incorporarse.
+**Other write operations not implemented.** Administration tools with restricted permissions have been considered, such as user authorization. These would also require specific controls before being implemented.
 
-## Reflexión de ingeniería
+## Engineering Reflection
 
-La parte más importante de este proyecto no fue conectar un asistente con una base de datos. Fue **convertir conocimiento operativo disperso en capacidades reutilizables**, con contratos explícitos y límites de autorización verificables.
+The most important part of this project was not connecting an assistant to a database. It was **turning scattered operational knowledge into reusable capabilities**, with explicit contracts and verifiable authorization limits.
 
-El diseño separa tres responsabilidades: los sistemas empresariales mantienen sus datos y permisos; el servidor MCP expone herramientas de consulta autorizadas; y el cliente agente interpreta la solicitud y utiliza esas herramientas para construir un diagnóstico o relacionar registros. La ampliación desde PostgreSQL hacia una API HTTP preserva esa separación.
+The design separates three responsibilities: business systems maintain their own data and permissions; the MCP server exposes authorized query tools; and the client agent interprets the request and uses those tools to build a diagnosis or link records. The extension from PostgreSQL to an HTTP API preserves this separation.
 
-Esta separación permite incorporar nuevas fuentes sin distribuir credenciales a cada cliente y obliga a distinguir lo que una herramienta puede demostrar de lo que un agente solo puede inferir.
+This separation allows new sources to be incorporated without distributing credentials to each client and requires distinguishing between what a tool can prove and what an agent can only infer.
 
-Es una aplicación de ingeniería de integración y seguridad al desarrollo de herramientas para agentes: el razonamiento del modelo amplía la utilidad de los datos, pero **no amplía sus privilegios**.
+It is an application of integration and security engineering to the development of agent tools: the model’s reasoning expands the utility of the data, but **does not expand its privileges**.
 
 ---
 
-[← Volver al portafolio](./README.md)
+[← Back to the portfolio](./README.md)
