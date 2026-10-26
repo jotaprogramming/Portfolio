@@ -1,175 +1,175 @@
-# Siesa: integración de ERP corporativo en compras, distribución y facturación
+# Siesa: Integration of Corporate ERP into Purchasing, Distribution, and Billing
 
-> Caso de estudio sobre trabajo de ingeniería realizado en sistemas empresariales en producción entre 2024 y 2026. Describe los problemas, responsabilidades y decisiones a nivel conceptual. No publica código propietario, consultas SQL reales, endpoints, configuración interna de plataformas, credenciales, estructuras de datos, identificadores de transacciones ni reglas comerciales detalladas.
+> Case study on engineering work performed on production enterprise systems between 2024 and 2026. It describes the problems, responsibilities, and decisions at the conceptual level. It does not disclose proprietary code, actual SQL queries, endpoints, internal platform configurations, credentials, data structures, transaction identifiers, or detailed business rules.
 
 ---
 
-## Contexto
+## Background
 
-Siesa era el ERP corporativo de referencia para procesos comerciales, inventario, compras y transacciones de la operación de retail. El reto no era implantar el ERP ni convertirlo en fuente de verdad: **ya cumplía ese papel**. El reto era conseguir que varias aplicaciones operativas intercambiaran información con él sin perder consistencia o trasladar errores entre sistemas.
+Siesa was the go-to corporate ERP system for business processes, inventory, purchasing, and retail transactions. The challenge wasn’t to implement the ERP or make it the single source of truth: **it already served that purpose**. The challenge was to get various operational applications to exchange information with it without losing consistency or passing errors between systems.
 
-Durante 2024 participé con otro desarrollador en tres frentes de integración: compras y requisiciones, distribución y facturación del punto de venta. La entrega principal de esa etapa ocurrió en septiembre de 2024. El trabajo no terminó con el despliegue: después hubo correcciones, optimizaciones y cambios de responsabilidad entre aplicaciones hasta 2026.
+Throughout 2024, I worked with another developer on three integration fronts: purchasing and requisitions, distribution, and point-of-sale billing. The main deliverable for that phase was completed in September 2024. The work did not end with the deployment: subsequent corrections, optimizations, and shifts in responsibility between applications continued through 2026.
 
-Los frentes estaban relacionados, pero no eran una única solución que yo hubiera diseñado e implementado íntegramente. Mi contribución fue distinta en cada uno:
+The areas were related, but they did not constitute a single solution that I had designed and implemented entirely on my own. My contribution was different in each one:
 
-| Frente | Mi responsabilidad principal | Límite de autoría |
+| Section | My Primary Responsibility | Scope of Work |
 |---|---|---|
-| Compras y requisiciones | Adaptación y desarrollo de la integración del portal de proveedores con Siesa; evolución y soporte | Trabajo desarrollado en un equipo de dos personas |
-| Distribución | Configuración de consultas, conectores y servicios suministrados mediante Connekta y Siesa Integrador | No desarrollé el aplicativo heredado de distribución ni los servicios SOAP del ERP |
-| Facturación POS–Siesa | Revisión, diagnóstico de diferencias y optimización de la integración | El desarrollo inicial de ese flujo correspondió a otro desarrollador |
+| Purchasing and Requisitions | Adaptation and development of the integration between the supplier portal and Siesa; ongoing development and support | Work carried out as part of a two-person team |
+| Distribution | Configuration of queries, connectors, and services provided through Connekta and Siesa Integrator | I did not develop the legacy distribution application or the ERP’s SOAP services |
+| POS–Siesa Billing | Review, diagnosis of discrepancies, and optimization of the integration | The initial development of this workflow was handled by another developer |
 
-Esta distinción es parte del caso: integrar un sistema empresarial también puede requerir configurar una plataforma existente o identificar defectos en componentes que no son propios.
+This distinction is part of the case: integrating a business system may also require configuring an existing platform or identifying defects in third-party components.
 
-### Relación funcional entre los frentes
+### Functional Relationship Between the Front Ends
 
 ```mermaid
 flowchart TB
-    S["Siesa<br/>ERP corporativo"]
-    A["Compras<br/>Desarrollo de portal"] --- S
-    B["Distribución<br/>Configuración"] --- M["Connekta /<br/>Siesa Integrador"]
+    S[“Siesa<br/>Corporate ERP”]
+    A[“Purchasing<br/>Portal Development”] --- S
+    B[“Distribution<br/>Configuration”] --- M[“Connekta /<br/>Siesa Integrator”]
     M --- S
-    C["POS–Siesa<br/>Diagnóstico y mejoras"] --- S
+    C[“POS–Siesa<br/>Diagnostics and Improvements”] --- S
 ```
 
-*Las líneas indican relación funcional con el ERP; no describen conexiones directas, endpoints ni flujos internos. Los servicios SOAP los gestiona la plataforma de integración.*
+*The lines indicate functional relationships with the ERP; they do not describe direct connections, endpoints, or internal flows. SOAP services are managed by the integration platform.*
 
 ---
 
-## 1. Compras y requisiciones: adaptar un portal existente
+## 1. Purchasing and Requisitions: Adapting an Existing Portal
 
-### Problema funcional
+### Functional Problem
 
-El proceso de compras necesitaba combinar información del ERP con la operación del proveedor y las necesidades de distintas tiendas. Un proveedor debía poder consultar un sugerido de compra, generar una orden y continuar el flujo que derivaba en requisiciones para los destinos correspondientes.
+The purchasing process needed to combine information from the ERP with supplier operations and the needs of different stores. A supplier had to be able to view a purchase recommendation, generate an order, and continue the workflow that resulted in requisitions for the corresponding destinations.
 
-La dificultad no se limitaba a presentar los datos del ERP en una interfaz. Una orden no siempre se atendía por la totalidad de lo solicitado: los faltantes y entregas parciales obligaban a contemplar reglas de distribución de cantidades y a mantener coherencia entre la solicitud comercial y los documentos resultantes.
+The challenge went beyond simply displaying ERP data in an interface. An order was not always fulfilled in its entirety: shortages and partial deliveries required the implementation of quantity allocation rules and ensured consistency between the commercial request and the resulting documents.
 
-El portal ya existía como aplicación heredada en Django. En vez de reconstruirlo, trabajé en su adaptación para integrarlo con Siesa.
+The portal already existed as a legacy application built with Django. Instead of rebuilding it, I worked on adapting it to integrate with Siesa.
 
-### Contribución técnica
+### Technical Contribution
 
-Desarrollé la integración del portal con el ERP y participé en la implementación del proceso de órdenes de compra y requisiciones. Esto incluyó recuperar información de referencia, adaptarla al contexto de la aplicación y resolver transformaciones y cálculos necesarios para el intercambio de información.
+I developed the integration of the portal with the ERP and participated in the implementation of the purchase order and requisition process. This included retrieving reference information, adapting it to the application’s context, and resolving the transformations and calculations necessary for the exchange of information.
 
-El flujo funcional, explicado sin revelar estructuras internas, era:
+The functional flow, explained without revealing internal structures, was as follows:
 
-1. El proveedor ingresa al portal y consulta información de compra procedente del ERP.
-2. A partir de ese contexto, prepara o genera la orden correspondiente.
-3. El proceso relaciona esa orden con las necesidades de los destinos operativos, considerando que las cantidades entregables pueden diferir de las inicialmente sugeridas.
-4. Los documentos y estados deben poder interpretarse correctamente entre el portal, el ERP y los demás sistemas de la operación.
+1. The supplier logs into the portal and views purchasing information from the ERP.
+2. Based on that context, the supplier prepares or generates the corresponding order.
+3. The process links that order to the needs of the operational destinations, taking into account that the quantities to be delivered may differ from those initially suggested.
+4. Documents and reports must be interpretable correctly across the portal, the ERP, and the other systems in the operation.
 
-Las reglas exactas de asignación y las consultas empleadas son internas y no se reproducen aquí.
+The exact allocation rules and queries used are internal and are not reproduced here.
 
-### Evolución posterior
+### Subsequent Developments
 
-La primera entrega quedó operativa en septiembre de 2024. Después continué corrigiendo y evolucionando el portal.
+The first version went live in September 2024. After that, I continued to refine and improve the portal.
 
-Una optimización relevante llegó en febrero de 2025: la consulta de sugeridos de compra dejó de depender de una importación accionada manualmente desde un único punto y pasó a obtener información de forma dinámica según el proveedor que ingresaba a la plataforma.
+A significant optimization took place in February 2025: the “suggested purchases” feature no longer relied on a manually triggered import from a single source but instead dynamically retrieved information based on the supplier logging into the platform.
 
-También se incorporaron mecanismos de registro para facilitar el seguimiento de las integraciones. El portal siguió cambiando, aunque no todas las mejoras posteriores correspondían directamente a la conexión con Siesa.
+Logging mechanisms were also incorporated to facilitate tracking of integrations. The portal continued to evolve, although not all subsequent improvements were directly related to the connection with Siesa.
 
-A finales de junio de 2026, la responsabilidad de realizar determinadas dispersiones o requisiciones pasó del portal a **LogiX**, que había evolucionado para asumir una parte mayor de la lógica operativa de distribución.
+In late June 2026, responsibility for carrying out certain distributions or requisitions shifted from the portal to **LogiX**, which had evolved to handle a larger portion of the operational distribution logic.
 
-> **Decisión de ingeniería:** integrar un aplicativo heredado no obliga a congelar sus responsabilidades. A medida que cambia el dominio, algunos procesos pueden trasladarse al sistema que mejor los representa, sin implicar una reescritura total.
-
----
-
-## 2. Distribución: configurar una plataforma de integración
-
-### Contexto y alcance
-
-El sistema de distribución heredado necesitaba intercambiar información con Siesa y transformar documentos para sus procesos operativos.
-
-En este frente mi trabajo se concentró en **configurar integraciones**, no en desarrollar el aplicativo original. Utilicé **Connekta** y después **Siesa Integrador**, evolución de esa plataforma, para configurar los servicios web que me proporcionaban, las consultas y los conectores necesarios.
-
-Es importante precisar el papel de SOAP: recibía las definiciones y direcciones de los webservices y las configuraba dentro de la plataforma. **La comunicación con esos servicios SOAP la realizaba Connekta o Siesa Integrador**, no un cliente SOAP desarrollado por mí.
-
-### Qué implicaba la configuración
-
-Desde el punto de vista de la integración, el trabajo exigía comprender qué información requería la operación, qué ofrecían los servicios del ERP y cómo representar las correspondencias entre las operaciones de los sistemas.
-
-En términos generales, la plataforma permitía configurar consultas de información, servicios asociados al ERP y conectores para documentos. La dificultad consistía en adecuar esas capacidades a procesos comerciales concretos y comprobar que los datos circularan con el significado esperado.
-
-No publico aquí las URLs de los servicios, los parámetros de autenticación, los documentos de configuración, las consultas SQL internas ni la topología de las instalaciones.
-
-### Limitaciones observadas
-
-El sistema heredado de distribución presentó posteriormente problemas de productividad y consistencia. Esos incidentes no deben atribuirse de forma simplista al middleware: el comportamiento de un proceso depende también de las decisiones del aplicativo consumidor y de las restricciones del sistema de destino.
-
-La evolución de esa plataforma fue parte del contexto que llevó a reconstruir el producto logístico posteriormente documentado en **[LogiX](./case-study-logix.md)**.
-
-Lo que aprendí aquí fue a distinguir **configuración de integración, lógica del consumidor y comportamiento del ERP**. Son capas distintas y requieren diagnósticos diferentes.
+> **Engineering Decision:** Integrating a legacy application does not require freezing its responsibilities. As the domain changes, some processes can be transferred to the system that best suits them, without requiring a complete rewrite.
 
 ---
 
-## 3. Facturación POS–Siesa: investigar inconsistencias entre sistemas
+## 2. Distribution: Setting Up an Integration Platform
 
-### Un frente distinto de la facturación electrónica
+### Context and Scope
 
-La integración de facturación del punto de venta con Siesa no debe confundirse con el proyecto de **facturación electrónica mediante un proveedor tecnológico**. Son flujos con propósitos y reglas distintas, aunque ambos parten de información comercial.
+The legacy distribution system needed to exchange information with Siesa and transform documents for its operational processes.
 
-Un compañero desarrolló inicialmente el flujo POS–Siesa. Me incorporé después para revisar, diagnosticar y optimizar su comportamiento.
+In this regard, my work focused on **configuring integrations**, not on developing the original application. I used **Connekta** and later **Siesa Integrador**—an evolution of that platform—to configure the web services they provided, as well as the necessary queries and connectors.
 
-### Investigación de diferencias
+It’s important to clarify the role of SOAP: I received the definitions and addresses of the web services and configured them within the platform. **Communication with these SOAP services was handled by Connekta or Siesa Integrador**, not by a SOAP client I developed myself.
 
-Una dificultad recurrente eran las facturas cuyas cifras no coincidían con lo esperado, especialmente en las cuentas por cobrar del ERP.
+### What the Configuration Involved
 
-No todas las diferencias tenían el mismo origen. Algunas se producían en las transformaciones del flujo de integración; otras ya existían en los datos entregados por el sistema de punto de venta.
+From an integration perspective, the work required understanding what information the operation needed, what the ERP services provided, and how to map the relationships between the systems’ operations.
 
-Para distinguirlas, reconstruí casos individuales y comprobé cómo se interpretaban los importes a lo largo del proceso. En las situaciones que correspondían al tratamiento de la integración, incorporé correcciones sin modificar los registros originales de las transacciones. Cuando el defecto provenía del POS, se documentaba y coordinaba su revisión con la responsable de ese sistema.
+Generally speaking, the platform allowed us to configure information queries, ERP-related services, and document connectors. The challenge lay in adapting these capabilities to specific business processes and verifying that the data flowed with the intended meaning.
 
-La cuestión de ingeniería era determinar **en qué frontera se introducía la discrepancia**, en lugar de añadir correcciones indiscriminadas en cualquier componente.
+I am not publishing here the URLs of the services, authentication parameters, configuration documents, internal SQL queries, or the network topology.
 
-### Una lección sobre reglas de datos
+### Observed Limitations
 
-Que dos sistemas trabajen con la misma factura no significa que interpreten de igual manera sus importes, descuentos o estados. Al comparar resultados, es necesario conocer qué representa cada campo y qué transformaciones realiza cada proceso.
+The legacy distribution system subsequently experienced productivity and consistency issues. These incidents should not be simplistically attributed to the middleware: a process’s behavior also depends on the decisions made by the consumer application and the constraints of the target system.
 
-El criterio que desarrollé en facturación electrónica me ayudó a investigar estas diferencias, pero no significa que se pudieran copiar las mismas funciones de cálculo entre integraciones con requisitos distintos.
+The evolution of that platform was part of the context that led to the redesign of the logistics product, which was later documented in **[LogiX](./case-study-logix.md)**.
 
-Las correcciones de este frente continuaron después de la salida principal a producción y se extendieron durante 2025.
-
----
-
-## Evolución transversal: de entregar integraciones a sostenerlas
-
-Después de la entrega inicial de 2024 continué atendiendo consultas, sincronización de datos, incidencias y cambios de las aplicaciones consumidoras. Esa continuidad convirtió una entrega puntual en una responsabilidad de mantenimiento en producción.
-
-La experiencia mostró que la arquitectura de integración también abarca **los límites entre productos, los contratos de datos y las responsabilidades de cada sistema**.
+What I learned here was to distinguish between **integration configuration, consumer logic, and ERP behavior**. These are distinct layers and require different diagnostic approaches.
 
 ---
 
-## Resultados que sí puedo sostener
+## 3. POS–Siesa Invoicing: Investigating Inconsistencies Between Systems
 
-- Participación en la salida a producción, en 2024, de integraciones relacionadas con compras, distribución y facturación sobre Siesa.
-- Desarrollo y evolución de la integración de un portal Django para el proceso de compras y requisiciones.
-- Configuración de integraciones mediante Connekta y Siesa Integrador, utilizando servicios proporcionados por la plataforma del ERP.
-- Optimización de la consulta de sugeridos por proveedor y mantenimiento continuo del portal.
-- Diagnóstico y tratamiento de inconsistencias entre POS y Siesa, distinguiendo problemas del origen y de la transformación.
-- Evolución de responsabilidades entre aplicaciones, con transferencia de procesos de distribución hacia LogiX en 2026.
-- Continuidad como referente técnico en la operación y soporte de estas integraciones.
+### A Different Aspect of Electronic Invoicing
 
-Estos resultados son cualitativos. No dispongo de una medición consolidada que permita atribuir al proyecto un porcentaje determinado de reducción de errores, una mejora cuantificada de latencia o ahorros económicos; por eso no presento cifras no verificadas.
+The integration of point-of-sale invoicing with Siesa should not be confused with the project for **electronic invoicing through a technology provider**. These are workflows with different purposes and rules, although both are based on commercial information.
 
----
+A colleague initially developed the POS–Siesa workflow. I joined the project later to review, diagnose, and optimize its performance.
 
-## Límites y retrospectiva
+### Investigation of Discrepancies
 
-**Siesa ya era la fuente de referencia.** La integración no convirtió al ERP en fuente de verdad: buscaba mantener a los sistemas consumidores alineados con ella. Esa diferencia importa para explicar correctamente el problema original.
+A recurring issue was invoices whose figures did not match expectations, especially in the ERP’s accounts receivable.
 
-**La consistencia requiere entender el dominio.** A veces una diferencia proviene de un dato incorrecto en origen; otras, de una transformación defectuosa o de supuestos distintos entre sistemas. Sin esa distinción, una corrección puede ocultar un problema y generar otro.
+Not all discrepancies had the same cause. Some arose during the integration process; others were already present in the data provided by the point-of-sale system.
 
-**No toda evolución exige rehacer el sistema.** Adaptar un portal existente y utilizar Connekta/Siesa Integrador fueron decisiones determinadas por la tecnología y los procesos disponibles. Cuando los límites del sistema de distribución dejaron de responder a la operación, apareció la necesidad de una transformación más profunda, abordada en LogiX.
+To distinguish between them, I reconstructed individual cases and verified how the amounts were interpreted throughout the process. In situations where the discrepancy stemmed from the integration process, I applied corrections without modifying the original transaction records. When the error originated from the POS, it was documented, and its review was coordinated with the person in charge of that system.
 
-**Las integraciones son relaciones de largo plazo.** El esfuerzo de diseño y entrega es solo una parte. La confiabilidad también se construye mediante seguimiento, diagnóstico, revisión de contratos de datos y adaptación a cambios de los sistemas involucrados.
+The engineering challenge was to determine **at which boundary the discrepancy originated**, rather than applying indiscriminate corrections to any component.
 
----
+### A Lesson on Data Rules
 
-## Reflexión
+Just because two systems work with the same invoice doesn’t mean they interpret its amounts, discounts, or statuses in the same way. When comparing results, it’s necessary to understand what each field represents and what transformations each process performs.
 
-Este proyecto me enseñó a trabajar con integraciones de distinta naturaleza: unas requieren desarrollo de aplicación, otras configuración de middleware y otras investigación de incidentes entre componentes que pertenecen a responsables diferentes.
+The methodology I developed for electronic invoicing helped me investigate these differences, but that doesn’t mean the same calculation functions could be copied across integrations with different requirements.
 
-La principal habilidad que desarrollé no fue aprender a consumir un servicio particular de un ERP. Fue **reconstruir cómo circula y cambia la información entre sistemas, identificar la responsabilidad de cada frontera y corregir problemas sin perder de vista los procesos que dependen de esos datos**.
-
-Esa experiencia dio contexto a decisiones posteriores en LogiX y al trabajo más reciente de integración de sistemas empresariales con herramientas para agentes.
+Corrections in this area continued after the main go-live and extended throughout 2025.
 
 ---
 
-[← Volver al portafolio](./README.md)
+## Cross-functional Evolution: From Delivering Integrations to Maintaining Them
+
+After the initial delivery in 2024, I continued to handle inquiries, data synchronization, incidents, and changes to the consumer applications. That continuity turned a one-time delivery into an ongoing production maintenance responsibility.
+
+Experience showed that integration architecture also encompasses **the boundaries between products, data contracts, and the responsibilities of each system**.
+
+---
+
+## Results I Can Account For
+
+- Participation in the 2024 go-live of integrations related to purchasing, distribution, and billing on Siesa.
+- Development and enhancement of a Django portal for the purchasing and requisition process.
+- Configuration of integrations using Connekta and Siesa Integrador, leveraging services provided by the ERP platform.
+- Optimized the “suggestions by supplier” query and provided ongoing maintenance of the portal.
+- Diagnosed and resolved inconsistencies between POS and Siesa, distinguishing between source and transformation issues.
+- Evolved responsibilities between applications, with the transfer of distribution processes to LogiX in 2026.
+- Continued role as a technical leader in the operation and support of these integrations.
+
+These results are qualitative. I do not have consolidated metrics that would allow me to attribute a specific percentage of error reduction, a quantified improvement in latency, or cost savings to the project; therefore, I am not presenting unverified figures.
+
+---
+
+## Limitations and Retrospective
+
+**Siesa was already the reference source.** Integration did not make the ERP system the source of truth: it sought to keep the consumer systems aligned with it. This distinction is important for correctly explaining the original problem.
+
+**Consistency requires understanding the domain.** Sometimes a discrepancy stems from incorrect source data; other times, from a faulty transformation or differing assumptions between systems. Without that distinction, a correction can mask one problem and create another.
+
+**Not every evolution requires rebuilding the system.** Adapting an existing portal and using Connekta/Siesa Integrador were decisions driven by the available technology and processes. When the limitations of the distribution system no longer met operational needs, the need for a more profound transformation arose—a need addressed by LogiX.
+
+**Integrations are long-term relationships.** The design and delivery effort is only part of the story. Reliability is also built through monitoring, diagnostics, reviewing data contracts, and adapting to changes in the systems involved.
+
+---
+
+## Reflection
+
+This project taught me to work with different types of integrations: some require application development, others middleware configuration, and still others involve investigating incidents between components managed by different teams.
+
+The key skill I developed wasn’t learning how to consume a specific ERP service. It was **reconstructing how information flows and changes between systems, identifying the responsibility at each interface, and resolving issues without losing sight of the processes that depend on that data**.
+
+That experience provided context for subsequent decisions at LogiX and for my most recent work integrating enterprise systems with tools for agents.
+
+---
+
+[← Back to portfolio](./README.md)
